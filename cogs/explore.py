@@ -242,7 +242,26 @@ class Explore(commands.Cog):
         final_embed.set_author(name=f"Battle Results", url=f"{opp_imgurl}")
         await ctx.send(embed=final_embed)
 
-    async def you_won_embed(self, ctx, user_id, char_name, opp_name, slug_name, char_imgurl, gold_prize, gold):
+    async def rank_up(self, slug):
+        cur_xp = slug['exp']
+        cur_rank = slug['rank']
+        # cur_coins = slug['coins']
+
+        if cur_xp >= round((5 * (cur_rank ** 3)) / 4):
+            await self.bot.pg_con.execute("UPDATE allslugs SET rank = $1 WHERE slugid = $2", cur_rank + 1, slug['slugid'])
+            return True
+        else:
+            return False
+
+    async def you_won_embed(self, ctx, user_id, char_name, opp_name, slug_name, slug_id, char_imgurl, gold_prize, gold):
+        slugdb = await self.bot.pg_con.fetch("SELECT * FROM allslugs WHERE slugid = $1", slug_id)
+        user_exp = slugdb[0]['exp']
+        random_exp = random.randint(30, 50)
+        total_exp = user_exp + random_exp
+        await self.bot.pg_con.execute(
+            "UPDATE allslugs SET exp = $1 WHERE slugid = $2", total_exp, slug_id
+        )
+
         final_embed = discord.Embed(
             description=
             f"""
@@ -251,14 +270,22 @@ class Explore(commands.Cog):
 
                     {char_name} won the battle! You won!
                     You recieved {gold_prize}{ctx.bot.coins} coins.
+                    
+                    {slug_name} recieved {random_exp} EXP.
 
                     Good Game!
                     """,
             color=ctx.bot.main
         )
         final_embed.set_author(name=f"Battle Results", url=f"{char_imgurl}")
-        await self.bot.pg_con.execute("UPDATE profile SET gold = $1 WHERE userid = $2", gold, user_id)
         await ctx.send(embed=final_embed)
+        await self.bot.pg_con.execute("UPDATE profile SET gold = $1 WHERE userid = $2", gold, user_id)
+
+        slugdb = await self.bot.pg_con.fetchrow("SELECT * FROM allslugs WHERE slugid = $1", slug_id)
+        if slugdb['rank'] <= 50:
+            if await self.rank_up(slugdb):
+                embed = discord.Embed(description=f"Congrats! {slug_name.capitalize()} is now Rank {slugdb['rank'] + 1}",color=ctx.bot.main)
+                await ctx.send(embed=embed)
 
     async def action_embed(self, ctx, first_name, first_slug_name, first_slug_damage, second_name, second_slug_name, second_slug_damage):
         result_embed = discord.Embed(
@@ -273,7 +300,16 @@ class Explore(commands.Cog):
         result_embed.set_author(name=f"{first_name} vs {second_name}")
         await ctx.send(embed=result_embed)
 
-    async def explore_battle(self, ctx, user_id, opp_char):
+    async def exp_reward(self, slug_id):
+        slugdb = await self.bot.pg_con.fetch("SELECT * FROM allslugs WHERE slugid = $1",slug_id)
+        user_exp = slugdb[0]['exp']
+        random_exp = random.randint(30,50)
+        total_exp = user_exp + random_exp
+        await self.bot.pg_con.execute(
+            "UPDATE allslugs SET exp = $1 WHERE slugid = $2", total_exp, slug_id
+        )
+
+    async def explore_battle(self, ctx, user_id, opp_char, opp_slug1, opp_slug2, opp_slug3, opp_slug4):
         # user_id = int(ctx.message.author.id)
         # user = ctx.message.author
         # user_name = str(ctx.message.author.name)
@@ -320,16 +356,12 @@ class Explore(commands.Cog):
         # endregion
 
         # region Opponent's Slug Names and Emojis
-        opp_slug1 = oppchardb[0]['slug1']
         opp_slug1_emoji = (await self.bot.pg_con.fetch("SELECT * FROM slugdata WHERE slugname = $1", opp_slug1))[0][
             'slugemoji']
-        opp_slug2 = oppchardb[0]['slug2']
         opp_slug2_emoji = (await self.bot.pg_con.fetch("SELECT * FROM slugdata WHERE slugname = $1", opp_slug2))[0][
             'slugemoji']
-        opp_slug3 = oppchardb[0]['slug3']
         opp_slug3_emoji = (await self.bot.pg_con.fetch("SELECT * FROM slugdata WHERE slugname = $1", opp_slug3))[0][
             'slugemoji']
-        opp_slug4 = oppchardb[0]['slug4']
         opp_slug4_emoji = (await self.bot.pg_con.fetch("SELECT * FROM slugdata WHERE slugname = $1", opp_slug4))[0][
             'slugemoji']
         # endregion
@@ -395,7 +427,7 @@ class Explore(commands.Cog):
             # region User's Slug Details
             allslugsdb = await self.bot.pg_con.fetch("SELECT * FROM allslugs WHERE slugid = $1", slug_id)
             slug_name = allslugsdb[0]['slugname']
-            slug_level = allslugsdb[0]['level']
+            slug_rank = allslugsdb[0]['rank']
             slug_ivattack = allslugsdb[0]['iv_attack']
             slug_evattack = allslugsdb[0]['ev_attack']
             slugdatadb = await self.bot.pg_con.fetch("SELECT * FROM slugdata WHERE slugname = $1", slug_name)
@@ -406,7 +438,7 @@ class Explore(commands.Cog):
             # region Opponent's Slug Details [Since bot, choices are random]
             opp_slug_name = random.choice([opp_slug1, opp_slug2, opp_slug3, opp_slug4])
             opp_slugdatadb = await self.bot.pg_con.fetch("SELECT * FROM slugdata WHERE slugname = $1", opp_slug_name)
-            opp_slug_level = random.randint(1, 10)
+            opp_slug_rank = random.randint(1, 10)
             opp_slug_attack = opp_slugdatadb[0]['attack']
             opp_slug_speed = opp_slugdatadb[0]['speed']
             # endregion
@@ -414,7 +446,7 @@ class Explore(commands.Cog):
             # region BATTLE Calculations for USER & OPPONENT
             # user
             slug_base_attack = int((2 * slug_attack + slug_ivattack + (0.25 * slug_evattack)) * (1 / 2))
-            slug_total_attack = int(slug_base_attack + (slug_base_attack * slug_level * 0.01) + slug_level * 1.5)
+            slug_total_attack = int(slug_base_attack + (slug_base_attack * slug_rank * 0.01) + slug_rank * 1.5)
             slug_damage = int(slug_total_attack + (slug_total_attack / 2 * (char_attack / opp_defense) * 0.09))
 
             # opponent
@@ -429,7 +461,7 @@ class Explore(commands.Cog):
                     await self.you_lost_embed(ctx, char_name, opp_name, opp_imgurl, opp_slug_name)
                     break
                 elif opp_health <= 0:
-                    await self.you_won_embed(ctx, user_id, char_name, opp_name, slug_name, char_imgurl, gold_prize, gold)
+                    await self.you_won_embed(ctx, user_id, char_name, opp_name, slug_name, slug_id, char_imgurl, gold_prize, gold)
                     win = 1
                     break
                 else:
@@ -440,7 +472,7 @@ class Explore(commands.Cog):
                 char_health = char_health - opp_slug_damage
                 if opp_health <= 0:
                     win = 1
-                    await self.you_won_embed(ctx, user_id, char_name, opp_name, slug_name, char_imgurl, gold_prize, gold)
+                    await self.you_won_embed(ctx, user_id, char_name, opp_name, slug_name, slug_id, char_imgurl, gold_prize, gold)
                     break
                 elif char_health <= 0:
                     await self.you_lost_embed(ctx, char_name, opp_name, opp_imgurl, opp_slug_name)
@@ -452,7 +484,8 @@ class Explore(commands.Cog):
                 opp_health = opp_health - slug_damage
                 char_health = char_health - opp_slug_damage
                 if opp_health <= 0:
-                    await self.you_won_embed(ctx, user_id, char_name, opp_name, slug_name, char_imgurl, gold_prize, gold)
+                    await self.you_won_embed(ctx, user_id, char_name, opp_name, slug_name, slug_id, char_imgurl, gold_prize, gold)
+                    await self.exp_reward(slug_id)
                     win = 1
                     break
                 elif char_health <= 0:
@@ -533,7 +566,12 @@ class Explore(commands.Cog):
         #endregion
 
         opp_char = random.choice(opp_chars)
-        win = await self.explore_battle(ctx, user_id, opp_char)
+        oppchardb = await self.bot.pg_con.fetch("SELECT * FROM chardata WHERE charname = $1", opp_char)
+        opp_slug1 = oppchardb[0]['slug1']
+        opp_slug2 = oppchardb[0]['slug2']
+        opp_slug3 = oppchardb[0]['slug3']
+        opp_slug4 = oppchardb[0]['slug4']
+        win = await self.explore_battle(ctx, user_id, opp_char, opp_slug1, opp_slug2, opp_slug3, opp_slug4)
 
         #region After Battle,
         chance = random.randint(1,100)

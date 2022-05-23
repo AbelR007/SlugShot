@@ -47,139 +47,139 @@ bot = commands.Bot(
 @bot.event
 async def on_ready():
     print("Bot is running...")
-    await bot.pg_con.execute(
-        """
-        CREATE TABLE IF NOT EXISTS profile(
-            userid bigint NOT NULL,
-            gold bigint DEFAULT 0,
-            crystal integer DEFAULT 0,
-            gem integer DEFAULT 0,
-            total_slugs integer DEFAULT 0,
-            character varchar,
-            location varchar DEFAULT 'Shane Hideout',
-            region varchar DEFAULT 'Western Caverns',
-            team1 varchar,
-            team2 varchar,
-            team3 varchar,
-            team4 varchar,
-            team5 varchar,
-            team6 varchar,
-            start integer DEFAULT 0,
-            PRIMARY KEY (userid)
-        )
-        """
-    )
-    await bot.pg_con.execute(
-        """
-        CREATE TABLE IF NOT EXISTS server(
-            serverid bigint NOT NULL,
-            prefix varchar NOT NULL DEFAULT '.',
-            channel1 bigint,
-            channel2 bigint,
-            channel3 bigint,
-            channel4 bigint,
-            channel5 bigint,
-            channel6 bigint,
-            PRIMARY KEY (serverid)
-        )
-        """
-    )
-    await bot.pg_con.execute(
-        """
-        CREATE TABLE IF NOT EXISTS allslugs(
-            slugid varchar NOT NULL,
-            slugtypeid varchar NOT NULL,
-            userid bigint NOT NULL,
-            slugname varchar,
-            nickname varchar,
-            level integer DEFAULT 1,
-            rank integer DEFAULT 0,
-            exp integer DEFAULT 0,
-            skill integer,
-
-            iv_health integer DEFAULT 0,
-            iv_attack integer DEFAULT 0,
-            iv_defense integer DEFAULT 0,
-            iv_speed integer DEFAULT 0,
-            iv_attackspeed integer DEFAULT 0,
-            
-            team_position varchar,
-            PRIMARY KEY (slugid)
-        )
-        """
-    )
-    await bot.pg_con.execute(
-        """
-        CREATE TABLE IF NOT EXISTS slugdata(
-            slugtypeid varchar NOT NULL,
-            slugname varchar NOT NULL,
-            type varchar,
-            rarity varchar,
-            description text,
-            location varchar,
-            ghoul varchar,
-            imgurl text,
-            description text,
-            slugemoji varchar,
-            
-            health integer DEFAULT 0,
-            attack integer DEFAULT 0,
-            defense integer DEFAULT 0,
-            speed integer DEFAULT 0,
-            attackspeed integer DEFAULT 0,
-            timetaken integer,
-            PRIMARY KEY (slugtypeid)
-        )
-        """
-    )
-    await bot.pg_con.execute(
-        """
-        CREATE TABLE IF NOT EXISTS allchars(
-            charid varchar NOT NULL,
-            chartypeid integer NOT NULL,
-            userid bigint NOT NULL,
-            charname varchar,
-            nickname varchar,
-            level integer DEFAULT 1,
-            rank integer DEFAULT 0,
-            exp integer DEFAULT 0,
-            skill integer,
-            
-            sp_health integer DEFAULT 0,
-            sp_attack integer DEFAULT 0,
-            sp_defense integer DEFAULT 0,
-            sp_speed integer DEFAULT 0,
-            sp_attackspeed integer DEFAULT 0,
-            
-            char_position varchar,
-            PRIMARY KEY (charid)
-        )
-        """
-    )
-
-    await bot.pg_con.execute(
-        """
-        CREATE TABLE IF NOT EXISTS chardata(
-            chartypeid varchar NOT NULL,
-            charname varchar NOT NULL,
-            type varchar,
-            rarity varchar,
-            description text,
-            location varchar,
-            ghoul varchar,
-            imgurl text,
-            emoji varchar,
-
-            health integer DEFAULT 0,
-            attack integer DEFAULT 0,
-            defense integer DEFAULT 0,
-            speed integer DEFAULT 0,
-            attackspeed integer DEFAULT 0,
-
-            PRIMARY KEY (chartypeid)
-        )
-        """
-    )
+    # await bot.pg_con.execute(
+    #     """
+    #     CREATE TABLE IF NOT EXISTS profile(
+    #         userid bigint NOT NULL,
+    #         gold bigint DEFAULT 0,
+    #         crystal integer DEFAULT 0,
+    #         gem integer DEFAULT 0,
+    #         total_slugs integer DEFAULT 0,
+    #         character varchar,
+    #         location varchar DEFAULT 'Shane Hideout',
+    #         region varchar DEFAULT 'Western Caverns',
+    #         team1 varchar,
+    #         team2 varchar,
+    #         team3 varchar,
+    #         team4 varchar,
+    #         team5 varchar,
+    #         team6 varchar,
+    #         start integer DEFAULT 0,
+    #         PRIMARY KEY (userid)
+    #     )
+    #     """
+    # )
+    # await bot.pg_con.execute(
+    #     """
+    #     CREATE TABLE IF NOT EXISTS server(
+    #         serverid bigint NOT NULL,
+    #         prefix varchar NOT NULL DEFAULT '.',
+    #         channel1 bigint,
+    #         channel2 bigint,
+    #         channel3 bigint,
+    #         channel4 bigint,
+    #         channel5 bigint,
+    #         channel6 bigint,
+    #         PRIMARY KEY (serverid)
+    #     )
+    #     """
+    # )
+    # await bot.pg_con.execute(
+    #     """
+    #     CREATE TABLE IF NOT EXISTS allslugs(
+    #         slugid varchar NOT NULL,
+    #         slugtypeid varchar NOT NULL,
+    #         userid bigint NOT NULL,
+    #         slugname varchar,
+    #         nickname varchar,
+    #         level integer DEFAULT 1,
+    #         rank integer DEFAULT 0,
+    #         exp integer DEFAULT 0,
+    #         skill integer,
+    #
+    #         iv_health integer DEFAULT 0,
+    #         iv_attack integer DEFAULT 0,
+    #         iv_defense integer DEFAULT 0,
+    #         iv_speed integer DEFAULT 0,
+    #         iv_attackspeed integer DEFAULT 0,
+    #
+    #         team_position varchar,
+    #         PRIMARY KEY (slugid)
+    #     )
+    #     """
+    # )
+    # await bot.pg_con.execute(
+    #     """
+    #     CREATE TABLE IF NOT EXISTS slugdata(
+    #         slugtypeid varchar NOT NULL,
+    #         slugname varchar NOT NULL,
+    #         type varchar,
+    #         rarity varchar,
+    #         description text,
+    #         location varchar,
+    #         ghoul varchar,
+    #         imgurl text,
+    #         description text,
+    #         slugemoji varchar,
+    #
+    #         health integer DEFAULT 0,
+    #         attack integer DEFAULT 0,
+    #         defense integer DEFAULT 0,
+    #         speed integer DEFAULT 0,
+    #         attackspeed integer DEFAULT 0,
+    #         timetaken integer,
+    #         PRIMARY KEY (slugtypeid)
+    #     )
+    #     """
+    # )
+    # await bot.pg_con.execute(
+    #     """
+    #     CREATE TABLE IF NOT EXISTS allchars(
+    #         charid varchar NOT NULL,
+    #         chartypeid integer NOT NULL,
+    #         userid bigint NOT NULL,
+    #         charname varchar,
+    #         nickname varchar,
+    #         level integer DEFAULT 1,
+    #         rank integer DEFAULT 0,
+    #         exp integer DEFAULT 0,
+    #         skill integer,
+    #
+    #         sp_health integer DEFAULT 0,
+    #         sp_attack integer DEFAULT 0,
+    #         sp_defense integer DEFAULT 0,
+    #         sp_speed integer DEFAULT 0,
+    #         sp_attackspeed integer DEFAULT 0,
+    #
+    #         char_position varchar,
+    #         PRIMARY KEY (charid)
+    #     )
+    #     """
+    # )
+    #
+    # await bot.pg_con.execute(
+    #     """
+    #     CREATE TABLE IF NOT EXISTS chardata(
+    #         chartypeid varchar NOT NULL,
+    #         charname varchar NOT NULL,
+    #         type varchar,
+    #         rarity varchar,
+    #         description text,
+    #         location varchar,
+    #         ghoul varchar,
+    #         imgurl text,
+    #         emoji varchar,
+    #
+    #         health integer DEFAULT 0,
+    #         attack integer DEFAULT 0,
+    #         defense integer DEFAULT 0,
+    #         speed integer DEFAULT 0,
+    #         attackspeed integer DEFAULT 0,
+    #
+    #         PRIMARY KEY (chartypeid)
+    #     )
+    #     """
+    # )
     # await bot.pg_con.execute(
     #     """
     #     CREATE TABLE IF NOT EXISTS ability(

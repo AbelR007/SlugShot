@@ -30,7 +30,7 @@ class Slug_Details(commands.Cog):
         return slugemoji
 
     @commands.command(
-        aliases= ['allslugs','as']
+        aliases= ['allslugs','as','box']
     )
     async def arsenal(self, ctx, n=1, user:discord.Member = None):
         if user is None:
