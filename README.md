@@ -1,11 +1,11 @@
 # SlugShot
 
-A Slugterra-based Fan-made Discord Game Bot, that provides the best slugterra experience on Discord. Battle, Trade & Explore beyond the caverns and Catch unique Slugs!
+A Slugterra-based Fan-made Discord Game Bot, that provides the best slugterra experience on Discord.<br>Battle, Trade & Explore beyond the caverns and Catch unique Slugs!
 Constantly updating and is available for everyone.
 
 ## How to get started
 
-Join the Official SlugShot Discord Server : https://discord.gg/YjaAw44fj5
+Join the Official SlugShot Discord Server : https://discord.gg/YjaAw44fj5 <br>
 Invite Bot : [Click this link](https://discord.com/api/oauth2/authorize?client_id=744238855724466238&permissions=8&scope=bot)
 
 ## Commands
