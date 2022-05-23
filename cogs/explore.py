@@ -62,6 +62,7 @@ locations_no = {
         "Rocklock Cavern": 5,
     },
 }
+new_var = "random"
 
 class Explore(commands.Cog):
     def __init__(self, bot):
