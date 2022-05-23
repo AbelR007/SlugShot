@@ -1,2 +1,6 @@
 .dump
-
+.gitignore
+.env
+.version_cogs
+cogs2
+.idea
