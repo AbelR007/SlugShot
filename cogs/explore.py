@@ -63,6 +63,22 @@ locations_no = {
     },
 }
 
+
+async def you_lost_embed(ctx, char_name, opp_name, opp_imgurl, opp_slug_name):
+    final_embed = discord.Embed(
+        description=f"""
+                    **{opp_name} used {opp_slug_name.capitalize()}**!
+                    {char_name} lost the rest of its health!
+
+                    {opp_name} won the battle! You lost!
+                    Good Game!
+                """,
+        color=ctx.bot.main
+    )
+    final_embed.set_author(name=f"Battle Results", url=f"{opp_imgurl}")
+    await ctx.send(embed=final_embed)
+
+
 class Explore(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -159,7 +175,7 @@ class Explore(commands.Cog):
         confirm_embed = discord.Embed(
             title="Confirm location",
             description=f"""
-                        Are you sure you want to travel to {gotoloc}?
+                        Are you sure you want to travel to {gotoloc} for {cost}?
 
                         ***Reply fast with reactions!***
                     """,
@@ -228,20 +244,6 @@ class Explore(commands.Cog):
         slugemoji = slugdatadb[0]['slugemoji']
         return slugemoji
 
-    async def you_lost_embed(self, ctx, char_name, opp_name, opp_imgurl, opp_slug_name):
-        final_embed = discord.Embed(
-            description=f"""
-                        **{opp_name} used {opp_slug_name.capitalize()}**!
-                        {char_name} lost the rest of its health!
-
-                        {opp_name} won the battle! You lost!
-                        Good Game!
-                    """,
-            color=ctx.bot.main
-        )
-        final_embed.set_author(name=f"Battle Results", url=f"{opp_imgurl}")
-        await ctx.send(embed=final_embed)
-
     async def rank_up(self, slug):
         cur_xp = slug['exp']
         cur_rank = slug['rank']
@@ -256,7 +258,7 @@ class Explore(commands.Cog):
     async def you_won_embed(self, ctx, user_id, char_name, opp_name, slug_name, slug_id, char_imgurl, gold_prize, gold):
         slugdb = await self.bot.pg_con.fetch("SELECT * FROM allslugs WHERE slugid = $1", slug_id)
         user_exp = slugdb[0]['exp']
-        random_exp = random.randint(30, 50)
+        random_exp = random.randint(20,60)
         total_exp = user_exp + random_exp
         await self.bot.pg_con.execute(
             "UPDATE allslugs SET exp = $1 WHERE slugid = $2", total_exp, slug_id
@@ -282,7 +284,7 @@ class Explore(commands.Cog):
         await self.bot.pg_con.execute("UPDATE profile SET gold = $1 WHERE userid = $2", gold, user_id)
 
         slugdb = await self.bot.pg_con.fetchrow("SELECT * FROM allslugs WHERE slugid = $1", slug_id)
-        if slugdb['rank'] <= 50:
+        if slugdb['rank'] < 50:
             if await self.rank_up(slugdb):
                 embed = discord.Embed(description=f"Congrats! {slug_name.capitalize()} is now Rank {slugdb['rank'] + 1}",color=ctx.bot.main)
                 await ctx.send(embed=embed)
@@ -309,6 +311,17 @@ class Explore(commands.Cog):
             "UPDATE allslugs SET exp = $1 WHERE slugid = $2", total_exp, slug_id
         )
 
+    #region EXPLORE BATTLE FUNCTIONS >>>
+    async def character_data(self, char):
+        health = int(char['health'])
+        attack = int(char['attack'])
+        defense = int(char['defense'])
+        speed = char['speed']
+        imgurl = char['imgurl']
+        return health, attack, defense, speed, imgurl
+
+    #endregion <<< ABOVE
+
     async def explore_battle(self, ctx, user_id, opp_char, opp_slug1, opp_slug2, opp_slug3, opp_slug4):
         # user_id = int(ctx.message.author.id)
         # user = ctx.message.author
@@ -326,12 +339,14 @@ class Explore(commands.Cog):
 
         # region User's Character Details
         char_name = str(profiledb[0]['character'])
-        chardb = await self.bot.pg_con.fetch("SELECT * FROM chardata WHERE charname = $1", char_name)
-        char_health = int(chardb[0]['health'])
-        char_attack = int(chardb[0]['attack'])
-        char_defense = int(chardb[0]['defense'])
-        char_speed = int(chardb[0]['speed'])
-        char_imgurl = chardb[0]['imgurl']
+        chardb = await self.bot.pg_con.fetchrow("SELECT * FROM chardata WHERE charname = $1", char_name)
+        char_health, char_attack, char_defense, char_speed, char_imgurl = await self.character_data(chardb)
+        # char_health = int(chardb[0]['health'])
+        # char_attack = int(chardb[0]['attack'])
+        # char_defense = int(chardb[0]['defense'])
+        # char_speed = int(chardb[0]['speed'])
+        # char_imgurl = chardb[0]['imgurl']
+
         # endregion
 
         # region User's Slugs IDs and Emojis
@@ -349,10 +364,11 @@ class Explore(commands.Cog):
         # opp_characters = ['Kord Zane', 'Trixie', 'Pronto']
         opp_name = opp_char
         oppchardb = await self.bot.pg_con.fetch("SELECT * FROM chardata WHERE charname = $1", opp_name)
-        opp_health = int(oppchardb[0]['health'])
-        opp_attack = int(oppchardb[0]['attack'])
-        opp_defense = int(oppchardb[0]['defense'])
-        opp_imgurl = oppchardb[0]['imgurl']
+        opp_health, opp_attack, opp_defense, opp_speed, opp_imgurl = await self.character_data(oppchardb)
+        # opp_health = int(oppchardb[0]['health'])
+        # opp_attack = int(oppchardb[0]['attack'])
+        # opp_defense = int(oppchardb[0]['defense'])
+        # opp_imgurl = oppchardb[0]['imgurl']
         # endregion
 
         # region Opponent's Slug Names and Emojis
@@ -458,7 +474,7 @@ class Explore(commands.Cog):
                 char_health = char_health - opp_slug_damage
                 opp_health = opp_health - slug_damage
                 if char_health <= 0:
-                    await self.you_lost_embed(ctx, char_name, opp_name, opp_imgurl, opp_slug_name)
+                    await you_lost_embed(ctx, char_name, opp_name, opp_imgurl, opp_slug_name)
                     break
                 elif opp_health <= 0:
                     await self.you_won_embed(ctx, user_id, char_name, opp_name, slug_name, slug_id, char_imgurl, gold_prize, gold)
@@ -475,7 +491,7 @@ class Explore(commands.Cog):
                     await self.you_won_embed(ctx, user_id, char_name, opp_name, slug_name, slug_id, char_imgurl, gold_prize, gold)
                     break
                 elif char_health <= 0:
-                    await self.you_lost_embed(ctx, char_name, opp_name, opp_imgurl, opp_slug_name)
+                    await you_lost_embed(ctx, char_name, opp_name, opp_imgurl, opp_slug_name)
                     break
                 else:
                     await self.action_embed(ctx, char_name, slug_name, slug_damage, opp_name, opp_slug_name, opp_slug_damage)
@@ -489,7 +505,7 @@ class Explore(commands.Cog):
                     win = 1
                     break
                 elif char_health <= 0:
-                    await self.you_lost_embed(ctx, char_name, opp_name, opp_imgurl, opp_slug_name)
+                    await you_lost_embed(ctx, char_name, opp_name, opp_imgurl, opp_slug_name)
                     break
                 else:
                     await self.action_embed(ctx, char_name, slug_name, slug_damage, opp_name, opp_slug_name, opp_slug_damage)
@@ -882,7 +898,7 @@ class Explore(commands.Cog):
         embed_step2_battle.set_author(name="Champion SlugShot")
 
         # Battle Command HERE
-        await self.explore_battle(ctx, user_id, "Eli Shane")
+        await self.explore_battle(ctx, user_id, "Eli Shane","infurnus","aquabeek","frostcrawler","arachnet")
         await ctx.send("Battle command under construction")
 
         embed_step3 = discord.Embed(
