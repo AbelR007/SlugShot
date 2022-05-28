@@ -1,14 +1,12 @@
-import ctx as ctx
 import discord
 from discord.ext import commands
 import autolist
-
 
 class Slug_Details(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    async def sl(self, ctx, coln, posn, authorid):
+    async def sl(self, coln, posn, authorid):
 
         author = await self.bot.pg_con.fetch("SELECT * FROM profile WHERE userid = $1", authorid)
         if not author:
@@ -41,11 +39,11 @@ class Slug_Details(commands.Cog):
             title="All Slugs",
             description=f"""
             🔷|\U0001f1e6|\U0001f1e7|\U0001f1e8|\U0001f1e9|\U0001f1ea
-            1️⃣|{await self.sl(ctx, n, 'a1', a)}|{await self.sl(ctx, n, 'b1', a)}|{await self.sl(ctx, n, 'c1', a)}|{await self.sl(ctx, n, 'd1', a)}|{await self.sl(ctx, n, 'e1', a)}
-            2️⃣|{await self.sl(ctx, n, 'a2', a)}|{await self.sl(ctx, n, 'b2', a)}|{await self.sl(ctx, n, 'c2', a)}|{await self.sl(ctx, n, 'd2', a)}|{await self.sl(ctx, n, 'e2', a)}
-            3️⃣|{await self.sl(ctx, n, 'a3', a)}|{await self.sl(ctx, n, 'b3', a)}|{await self.sl(ctx, n, 'c3', a)}|{await self.sl(ctx, n, 'd3', a)}|{await self.sl(ctx, n, 'e3', a)}
-            4️⃣|{await self.sl(ctx, n, 'a4', a)}|{await self.sl(ctx, n, 'b4', a)}|{await self.sl(ctx, n, 'c4', a)}|{await self.sl(ctx, n, 'd4', a)}|{await self.sl(ctx, n, 'e4', a)}
-            5️⃣|{await self.sl(ctx, n, 'a5', a)}|{await self.sl(ctx, n, 'b5', a)}|{await self.sl(ctx, n, 'c5', a)}|{await self.sl(ctx, n, 'd5', a)}|{await self.sl(ctx, n, 'e5', a)}
+            1️⃣|{await self.sl(n, 'a1', a)}|{await self.sl(n, 'b1', a)}|{await self.sl(n, 'c1', a)}|{await self.sl(n, 'd1', a)}|{await self.sl(n, 'e1', a)}
+            2️⃣|{await self.sl(n, 'a2', a)}|{await self.sl(n, 'b2', a)}|{await self.sl(n, 'c2', a)}|{await self.sl(n, 'd2', a)}|{await self.sl(n, 'e2', a)}
+            3️⃣|{await self.sl(n, 'a3', a)}|{await self.sl(n, 'b3', a)}|{await self.sl(n, 'c3', a)}|{await self.sl(n, 'd3', a)}|{await self.sl(n, 'e3', a)}
+            4️⃣|{await self.sl(n, 'a4', a)}|{await self.sl(n, 'b4', a)}|{await self.sl(n, 'c4', a)}|{await self.sl(n, 'd4', a)}|{await self.sl(n, 'e4', a)}
+            5️⃣|{await self.sl(n, 'a5', a)}|{await self.sl(n, 'b5', a)}|{await self.sl(n, 'c5', a)}|{await self.sl(n, 'd5', a)}|{await self.sl(n, 'e5', a)}
             """,
             colour=ctx.bot.main)
         await ctx.send(embed=embed)
@@ -146,7 +144,7 @@ class Slug_Details(commands.Cog):
                     {slugs_list[9]}    {slugs_list[10]}    {slugs_list[11]}
                 """,
             )
-            await ctx.send(embed=all_embed)
+            return await ctx.send(embed=all_embed)
 
         # Checks if slug name exists
         if slug_name in slugs_list:

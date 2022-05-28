@@ -3,6 +3,7 @@ from discord.ext import commands
 import random
 import asyncio
 import numpy as np
+
 # from discord.ext.commands.cooldowns import BucketType
 
 _mc = commands.MaxConcurrency(1, per=commands.BucketType.user, wait=False)
@@ -27,8 +28,8 @@ regions = {
 }
 slugs = {
     "Shane Hideout": {
-        "common": ['rammstone','hop rock'],
-        "uncommon": ['armashelt','arachnet',],
+        "common": ['rammstone', 'hop rock'],
+        "uncommon": ['armashelt', 'arachnet', ],
         "legendary": ['infurnus'],
     },
     "Wild Spores Cavern": {
@@ -41,16 +42,16 @@ slugs = {
     "Dark Spores Cavern": {
         "common": ['flatulorhinkus'],
         "rare": ['speedstinger'],
-        "super rare": ['grenuke','frightgeist'],
+        "super rare": ['grenuke', 'frightgeist'],
     },
     "Herringbone Cavern": {
         "uncommon": ['speedstinger'],
-        "rare": ['grenuke','armashelt'],
+        "rare": ['grenuke', 'armashelt'],
     },
     "Rocklock Cavern": {
         "common": ['hop rock'],
-        "uncommon": ['arachnet','rammstone'],
-        "super rare":['grenuke'],
+        "uncommon": ['arachnet', 'rammstone'],
+        "super rare": ['grenuke'],
     }
 }
 locations_no = {
@@ -81,7 +82,7 @@ class Explore(commands.Cog):
         return slug_id
 
     @commands.command(
-        description = "Shows your current location and region",
+        description="Shows your current location and region",
         aliases=['loc']
     )
     async def location(self, ctx):
@@ -91,9 +92,9 @@ class Explore(commands.Cog):
         region = profiledb[0]['region']
 
         embed = discord.Embed(
-            title = "Current Location",
-            description = f"**Location**: {location}\n**Region**: {region}",
-            color = ctx.bot.main
+            title="Current Location",
+            description=f"**Location**: {location}\n**Region**: {region}",
+            color=ctx.bot.main
         )
         embed.set_footer(text="Go to different locations using the .goto command")
         await ctx.send(embed=embed)
@@ -101,9 +102,9 @@ class Explore(commands.Cog):
     @commands.command()
     async def slugloc(self, ctx):
         embed = discord.Embed(
-            title = "Slugs available at Locations",
-            description = "Region : Wild Western Caverns",
-            color = ctx.bot.main
+            title="Slugs available at Locations",
+            description="Region : Wild Western Caverns",
+            color=ctx.bot.main
         )
         # for i in range(len(slugs)):
         #     embed.add_field(
@@ -124,16 +125,16 @@ class Explore(commands.Cog):
                     # print("Slugs :",slugs_list[j])
                     str = str + f"{ctx.bot.tree} " + slugs_list[j] + "\n"
             embed.add_field(
-                name = f"{region}",
-                value = f"{str}",
-                inline = True
+                name=f"{region}",
+                value=f"{str}",
+                inline=True
             )
         embed.set_footer(text="You can travel to locations using .goto <loc> command")
         await ctx.send(embed=embed)
 
     @commands.command(
-        description = "Helps you move to a new location!",
-        aliases = ['gt']
+        description="Helps you move to a new location!",
+        aliases=['gt']
     )
     async def goto(self, ctx, *, gotoloc):
         user_id = ctx.message.author.id
@@ -197,12 +198,15 @@ class Explore(commands.Cog):
         # endregion
 
         if str(reaction.emoji) == tick:
-            await self.bot.pg_con.execute("UPDATE profile SET location = $1 WHERE userid = $2",gotoloc, user_id)
-            await self.bot.pg_con.execute("UPDATE profile SET gold = $1 WHERE userid = $2",current_coins - cost, user_id)
-            end_embed = discord.Embed(title="Success",description=f"You have successfully traveled to {gotoloc} in {region}",color=ctx.bot.success)
+            await self.bot.pg_con.execute("UPDATE profile SET location = $1 WHERE userid = $2", gotoloc, user_id)
+            await self.bot.pg_con.execute("UPDATE profile SET gold = $1 WHERE userid = $2", current_coins - cost,
+                                          user_id)
+            end_embed = discord.Embed(title="Success",
+                                      description=f"You have successfully traveled to {gotoloc} in {region}",
+                                      color=ctx.bot.success)
             return await msg.edit(embed=end_embed)
         else:
-            end_embed = discord.Embed(title="Cancelled",color=ctx.bot.invis)
+            end_embed = discord.Embed(title="Cancelled", color=ctx.bot.invis)
             return await msg.edit(embed=end_embed)
 
         # if region == "Wild Western Caverns":
@@ -218,14 +222,15 @@ class Explore(commands.Cog):
         #     pass
 
     async def error_embed(self, ctx, content):
-        embed = discord.Embed(title="ERROR",description=f"{content}",color=ctx.bot.error)
+        embed = discord.Embed(title="ERROR", description=f"{content}", color=ctx.bot.error)
         return await ctx.send(embed=embed)
 
     async def slug_emoji(self, slug_id):
         if slug_id == '' or slug_id is None:
             return " "
         allslugsdb = await self.bot.pg_con.fetch("SELECT * FROM allslugs WHERE slugid = $1", slug_id)
-        slugdatadb = await self.bot.pg_con.fetch("SELECT * FROM slugdata WHERE slugname = $1", allslugsdb[0]['slugname'])
+        slugdatadb = await self.bot.pg_con.fetch("SELECT * FROM slugdata WHERE slugname = $1",
+                                                 allslugsdb[0]['slugname'])
         slugemoji = slugdatadb[0]['slugemoji']
         return slugemoji
 
@@ -235,25 +240,25 @@ class Explore(commands.Cog):
         # cur_coins = slug['coins']
 
         if cur_xp >= round((5 * (cur_rank ** 3)) / 4):
-            await self.bot.pg_con.execute("UPDATE allslugs SET rank = $1 WHERE slugid = $2", cur_rank + 1, slug['slugid'])
+            await self.bot.pg_con.execute("UPDATE allslugs SET rank = $1 WHERE slugid = $2", cur_rank + 1,
+                                          slug['slugid'])
             return True
         else:
             return False
 
-    async def slug_exp(self, ctx, exp_str, slug1_id,slug1_exp):
-        if slug1_exp != 0:
-            slug1_db = await self.bot.pg_con.fetchrow("SELECT * FROM allslugs WHERE slugid = $1", slug1_id)
+    async def slug_exp(self, ctx, exp_str, slug_id, slug_exp):
+        if slug_exp != 0:
+            slug_db = await self.bot.pg_con.fetchrow("SELECT * FROM allslugs WHERE slugid = $1", slug_id)
             await self.bot.pg_con.execute(
-                "UPDATE allslugs SET exp = $1 WHERE slugid = $2", slug1_db['exp'] + slug1_exp, slug1_id
+                "UPDATE allslugs SET exp = $1 WHERE slugid = $2", slug_db['exp'] + slug_exp, slug_id
             )
-            slug_emoji = await self.slug_emoji(slug1_id)
-            exp_str += f"\n{slug_emoji}{slug1_db['slugname'].capitalize()} recieved {slug1_exp} EXP"
+            slug_emoji = await self.slug_emoji(slug_id)
+            exp_str += f"\n{slug_emoji}{slug_db['slugname'].capitalize()} recieved {slug_exp} EXP"
 
-
-            if slug1_db['rank'] < 50:
-                if await self.rank_up(slug1_db):
+            if slug_db['rank'] < 50:
+                if await self.rank_up(slug_db):
                     embed = discord.Embed(
-                        description=f"**Congrats!** {slug1_db['slugname'].capitalize()} is now Rank {slug1_db['rank'] + 1}",
+                        description=f"**Congrats!** {slug_db['slugname'].capitalize()} is now Rank {slug_db['rank'] + 1}",
                         color=ctx.bot.main)
                     await ctx.send(embed=embed)
         return exp_str
@@ -263,7 +268,7 @@ class Explore(commands.Cog):
             slug1_id, slug1_exp, slug2_id, slug2_exp, slug3_id, slug3_exp, slug4_id, slug4_exp
     ):
         exp_str = ""
-        exp_str = await self.slug_exp(ctx, exp_str, slug1_id,slug1_exp)
+        exp_str = await self.slug_exp(ctx, exp_str, slug1_id, slug1_exp)
         exp_str = await self.slug_exp(ctx, exp_str, slug2_id, slug2_exp)
         exp_str = await self.slug_exp(ctx, exp_str, slug3_id, slug3_exp)
         exp_str = await self.slug_exp(ctx, exp_str, slug4_id, slug4_exp)
@@ -305,7 +310,8 @@ class Explore(commands.Cog):
         final_embed.set_author(name=f"Battle Results", url=f"{opp_imgurl}")
         await ctx.send(embed=final_embed)
 
-    async def action_embed(self, ctx, first_name, first_slug_name, first_slug_damage, second_name, second_slug_name, second_slug_damage):
+    async def action_embed(self, ctx, first_name, first_slug_name, first_slug_damage, second_name, second_slug_name,
+                           second_slug_damage):
         result_embed = discord.Embed(
             description=f"""
                 **{first_name} used {first_slug_name}**!
@@ -318,16 +324,16 @@ class Explore(commands.Cog):
         result_embed.set_author(name=f"{first_name} vs {second_name}")
         await ctx.send(embed=result_embed)
 
-    async def exp_reward(self, slug_id):
-        slugdb = await self.bot.pg_con.fetch("SELECT * FROM allslugs WHERE slugid = $1",slug_id)
-        user_exp = slugdb[0]['exp']
-        random_exp = random.randint(30,50)
-        total_exp = user_exp + random_exp
-        await self.bot.pg_con.execute(
-            "UPDATE allslugs SET exp = $1 WHERE slugid = $2", total_exp, slug_id
-        )
+    # async def exp_reward(self, slug_id):
+    #     slugdb = await self.bot.pg_con.fetch("SELECT * FROM allslugs WHERE slugid = $1", slug_id)
+    #     user_exp = slugdb[0]['exp']
+    #     random_exp = random.randint(30, 50)
+    #     total_exp = user_exp + random_exp
+    #     await self.bot.pg_con.execute(
+    #         "UPDATE allslugs SET exp = $1 WHERE slugid = $2", total_exp, slug_id
+    #     )
 
-    #region EXPLORE BATTLE FUNCTIONS >>>
+    # region EXPLORE BATTLE FUNCTIONS >>>
     async def character_data(self, char):
         health = int(char['health'])
         attack = int(char['attack'])
@@ -336,7 +342,25 @@ class Explore(commands.Cog):
         imgurl = char['imgurl']
         return health, attack, defense, speed, imgurl
 
-    #endregion <<< ABOVE
+    # async def battle_algo(self, char_attack, opp_defense, slug_attack, slug_ivattack, slug_evattack, slug_rank, slug_level):
+    async def battle_algo(self, Attack, Defense, Base, IV, EV, Rank, Level):
+        Base_Bonus = int((2 * Base + IV + (0.25 * EV)) * (1 / 2))
+        Rank_Bonus = int((Base_Bonus * Rank * 0.01) + Rank / 2)
+        Level_Bonus = int(((Base_Bonus * Level) / 50) + Level * 2)
+        Rank_Level = int(Rank * Level * 0.05)
+
+        Slug_Attack = int(Base_Bonus + Level_Bonus + Rank_Bonus + Rank_Level)
+        Character_Bonus = int((Slug_Attack / 2 * (Attack / Defense) * 0.09))
+
+        Total_Damage = Slug_Attack + Character_Bonus
+
+        return Total_Damage
+    # Base_Attack = int((2 * Base + IV + (0.25 * EV)) * (1 / 2))
+    # Rank_Bonus = int( (Base * Rank * 0.01) + )
+    # Slug_Attack = int(Base_Attack + (Base_Attack * Rank * 0.01) + Rank * 1.5)
+    # Total_Damage = int(Slug_Attack + (Slug_Attack / 2 * (char_attack / opp_defense) * 0.09))
+
+    # endregion <<< ABOVE
 
     async def explore_battle(self, ctx, user_id, opp_char, opp_slug1, opp_slug2, opp_slug3, opp_slug4):
         # user_id = int(ctx.message.author.id)
@@ -349,15 +373,16 @@ class Explore(commands.Cog):
 
         # Gold rewarded after match [Randomised]
         cgold = int(profiledb[0]['gold'])
-        gold_prize = random.randint(20, 60)
+        gold_prize = random.randint(10, 30)
         gold = cgold + gold_prize
         # endregion
 
         # region User's Character Details
-        char_name = str(profiledb[0]['character'])
+        char_id = str(profiledb[0]['character'])
+        char_type_id = (await self.bot.pg_con.fetchrow("SELECT * FROM allchars WHERE charid = $1",char_id))['chartypeid']
+        char_name = (await self.bot.pg_con.fetchrow("SELECT * FROM chardata WHERE chartypeid = $1",char_type_id))['charname']
         chardb = await self.bot.pg_con.fetchrow("SELECT * FROM chardata WHERE charname = $1", char_name)
         char_health, char_attack, char_defense, char_speed, char_imgurl = await self.character_data(chardb)
-
         # endregion
 
         # region User's Slugs IDs and Emojis
@@ -410,6 +435,7 @@ class Explore(commands.Cog):
             )
             battle_embed.set_footer(text="Choose your option : 1, 2, 3, 4 or 'ff'")
             bembed = await ctx.send(embed=battle_embed)
+
             # endregion
 
             # region Input for Action [Slug Choice]
@@ -420,18 +446,18 @@ class Explore(commands.Cog):
 
             # Waiting for User's Command
             timeout_embed = discord.Embed(
-                title = "Timeout!",
-                description = "You didn't reply in 40 seconds! Battle ended.",
-                color = ctx.bot.invis
+                title="Timeout!",
+                description="You didn't reply in 40 seconds! Battle ended.",
+                color=ctx.bot.invis
             )
             try:
-                msg = await self.bot.wait_for('message',timeout=40.0, check=check)
+                msg = await self.bot.wait_for('message', timeout=40.0, check=check)
             except asyncio.TimeoutError:
                 return await bembed.edit(embed=timeout_embed)
             else:
                 pass
             choice = msg.content
-            random_exp = random.randint(10,30)
+            random_exp = random.randint(5, 20)
 
             if choice == "1":
                 slug_id = slug1_id
@@ -459,6 +485,7 @@ class Explore(commands.Cog):
             allslugsdb = await self.bot.pg_con.fetch("SELECT * FROM allslugs WHERE slugid = $1", slug_id)
             slug_name = allslugsdb[0]['slugname']
             slug_rank = allslugsdb[0]['rank']
+            slug_level = allslugsdb[0]['level']
             slug_ivattack = allslugsdb[0]['iv_attack']
             slug_evattack = allslugsdb[0]['ev_attack']
             slugdatadb = await self.bot.pg_con.fetch("SELECT * FROM slugdata WHERE slugname = $1", slug_name)
@@ -476,19 +503,22 @@ class Explore(commands.Cog):
 
             # region BATTLE Calculations for USER & OPPONENT
             # user
-            slug_base_attack = int((2 * slug_attack + slug_ivattack + (0.25 * slug_evattack)) * (1 / 2))
-            slug_total_attack = int(slug_base_attack + (slug_base_attack * slug_rank * 0.01) + slug_rank * 1.5)
-            slug_damage = int(slug_total_attack + (slug_total_attack / 2 * (char_attack / opp_defense) * 0.09))
+            # Base_Attack = int((2 * slug_attack + slug_ivattack + (0.25 * slug_evattack)) * (1 / 2))
+            # Slug_Attack = int(Base_Attack + (Base_Attack * slug_rank * 0.01) + slug_rank * 1.5)
+            # Total_Damage = int(Slug_Attack + (Slug_Attack / 2 * (char_attack / opp_defense) * 0.09))
+
+            Total_Damage = await self.battle_algo(
+                char_attack, opp_defense, slug_attack, slug_ivattack, slug_evattack, slug_rank, slug_level
+            )
 
             # opponent
             opp_slug_damage = opp_slug_attack
             # endregion
 
-            print(slug1_exp,slug2_exp,slug3_exp,slug4_exp)
-            #region Damage Details [CHECK for Health]
+            # region Damage Details [CHECK for Health]
             if opp_slug_speed > slug_speed:
                 char_health = char_health - opp_slug_damage
-                opp_health = opp_health - slug_damage
+                opp_health = opp_health - Total_Damage
                 if char_health <= 0:
                     await self.you_lost_embed(ctx, char_name, opp_name, opp_imgurl, opp_slug_name)
                     break
@@ -500,10 +530,11 @@ class Explore(commands.Cog):
                     win = 1
                     break
                 else:
-                    await self.action_embed(ctx, opp_name, opp_slug_name, opp_slug_damage, char_name, slug_name, slug_damage)
+                    await self.action_embed(ctx, opp_name, opp_slug_name, opp_slug_damage, char_name, slug_name,
+                                            Total_Damage)
 
             elif slug_speed > opp_slug_speed:
-                opp_health -= slug_damage
+                opp_health -= Total_Damage
                 char_health = char_health - opp_slug_damage
                 if opp_health <= 0:
                     win = 1
@@ -516,10 +547,11 @@ class Explore(commands.Cog):
                     await self.you_lost_embed(ctx, char_name, opp_name, opp_imgurl, opp_slug_name)
                     break
                 else:
-                    await self.action_embed(ctx, char_name, slug_name, slug_damage, opp_name, opp_slug_name, opp_slug_damage)
+                    await self.action_embed(ctx, char_name, slug_name, Total_Damage, opp_name, opp_slug_name,
+                                            opp_slug_damage)
 
             else:  # when slug_speed == opp_slug_speed
-                opp_health = opp_health - slug_damage
+                opp_health = opp_health - Total_Damage
                 char_health = char_health - opp_slug_damage
                 if opp_health <= 0:
                     await self.you_won_embed(
@@ -533,19 +565,20 @@ class Explore(commands.Cog):
                     await self.you_lost_embed(ctx, char_name, opp_name, opp_imgurl, opp_slug_name)
                     break
                 else:
-                    await self.action_embed(ctx, char_name, slug_name, slug_damage, opp_name, opp_slug_name, opp_slug_damage)
-            #endregion
+                    await self.action_embed(ctx, char_name, slug_name, Total_Damage, opp_name, opp_slug_name,
+                                            opp_slug_damage)
+            # endregion
         return win
         # END of BATTLE BoT
 
-    async def char_slugs(self, char):
-        if char == "Kord Zane":
-            slugs = ['']
-        else:
-            slugs = ['tazerling','rammstone','armashelt']
-        return slugs
+    # async def char_slugs(self, char):
+    #     if char == "Kord Zane":
+    #         slugs = ['']
+    #     else:
+    #         slugs = ['tazerling', 'rammstone', 'armashelt']
+    #     return slugs
 
-    async def rarity_percent(self, rarities,):
+    async def rarity_percent(self, rarities, ):
         percent = [0.44, 0.25, 0.15, 0.10, 0.05, 0.01]
         if "common" not in rarities:
             percent.remove(0.44)
@@ -569,42 +602,44 @@ class Explore(commands.Cog):
             check_sum += percent[i]
         # print(percent,check_sum)
         if check_sum > 1:
-            percent[0] = round(percent[0] + (1-check_sum),2)
+            percent[0] = round(percent[0] + (1 - check_sum), 2)
         if check_sum < 1:
-            percent[0] = round(percent[0] - (1-check_sum),2)
+            percent[0] = round(percent[0] - (1 - check_sum), 2)
         return percent
 
     # @commands.MaxConcurrency(1, per=commands.BucketType.user, wait=False)
     @commands.command(
-        description = "Explore the caverns, this and beyond!",
-        aliases = ['exp','x'],
-        max_concurrency = _mc
+        description="Explore the caverns, this and beyond!",
+        aliases=['exp', 'x'],
+        max_concurrency=_mc
     )
-    @commands.cooldown(1,10, commands.BucketType.user)
+    @commands.cooldown(1, 10, commands.BucketType.user)
     async def explore(self, ctx):
         # embed = discord.Embed(title="Work in Progress",color=ctx.bot.invis)
         # return await ctx.send(embed=embed)
         user_id = ctx.message.author.id
         user_name = ctx.message.author.name
 
-        #region Profile Database Details
+        # region Profile Database Details
         profiledb = await self.profiledb(user_id)
         start = profiledb[0]['start']
         if start == 0:
-            start_embed = discord.Embed(title = "Retry later",description="Please start your journey first using `.start`\nAny doubts? Ask at SlugShot support server",color=ctx.bot.invis)
+            start_embed = discord.Embed(title="Retry later",
+                                        description="Please start your journey first using `.start`\nAny doubts? Ask at SlugShot support server",
+                                        color=ctx.bot.invis)
             return await ctx.send(embed=start_embed)
 
         region = profiledb[0]['region']
         location = profiledb[0]['location']
-        #endregion
+        # endregion
 
-        #region Opponent's Character's List
+        # region Opponent's Character's List
 
         try:
             opp_chars = regions[region][location]
         except KeyError:
             return await self.error_embed(ctx, "This Cavern is Locked")
-        #endregion
+        # endregion
 
         opp_char = random.choice(opp_chars)
         oppchardb = await self.bot.pg_con.fetch("SELECT * FROM chardata WHERE charname = $1", opp_char)
@@ -614,8 +649,8 @@ class Explore(commands.Cog):
         opp_slug4 = oppchardb[0]['slug4']
         win = await self.explore_battle(ctx, user_id, opp_char, opp_slug1, opp_slug2, opp_slug3, opp_slug4)
 
-        #region After Battle,
-        chance = random.randint(1,100)
+        # region After Battle,
+        chance = random.randint(1, 100)
         # print(chance)
         if win == 1:
             if chance > 80:
@@ -625,29 +660,30 @@ class Explore(commands.Cog):
         else:
             return
 
-        #region Chance Embed
+        # region Chance Embed
         chance_embed = discord.Embed(
-            title = "New Slug Found",
-            description = f"""
+            title="New Slug Found",
+            description=f"""
                 A slug {ctx.bot.question_mark} wants to join your team!
                 Do you want to catch it or not?
                 
                 ***Reply fast with reactions!***
             """,
-            color = ctx.bot.main
+            color=ctx.bot.main
         )
-        chance_embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/716625655692787801/976451381655379998/Unclassified.webp")
+        chance_embed.set_thumbnail(
+            url="https://cdn.discordapp.com/attachments/716625655692787801/976451381655379998/Unclassified.webp")
         cembed = msg = await ctx.send(embed=chance_embed)
-        #endregion
+        # endregion
 
-        #region Timeout Embed
+        # region Timeout Embed
         timeout_embed = discord.Embed(
-            title = "Ah! You missed it!",
-            color = ctx.bot.invis
+            title="Ah! You missed it!",
+            color=ctx.bot.invis
         )
-        #endregion
+        # endregion
 
-        #region Taking Input via reactions
+        # region Taking Input via reactions
         tick = "\U00002611"
         cross = "\U0000274e"
         await cembed.add_reaction(tick)
@@ -665,8 +701,7 @@ class Explore(commands.Cog):
             return await msg.edit(embed=timeout_embed)
         else:
             pass
-        #endregion
-
+        # endregion
 
         if str(reaction.emoji) == tick:
             rarities = list(slugs[location].keys())
@@ -676,7 +711,7 @@ class Explore(commands.Cog):
             slug_rarity = np.random.choice(a=rarities, p=percent)
             slug_name = random.choice(slugs[location][slug_rarity])
 
-            #region Database Changes
+            # region Database Changes
             team1 = profiledb[0]['team1']
             team2 = profiledb[0]['team2']
             team3 = profiledb[0]['team3']
@@ -726,16 +761,17 @@ class Explore(commands.Cog):
 
             await self.bot.pg_con.execute(
                 "INSERT INTO allslugs (slugid, slugtypeid, userid, slugname, iv_attack, team_position, container_position) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-                str(slugid), str(slugtypeid), int(user_id), str(slug_name), int(iv_attack), str(team_pos), str(container_pos)
+                str(slugid), str(slugtypeid), int(user_id), str(slug_name), int(iv_attack), str(team_pos),
+                str(container_pos)
             )
             await self.bot.pg_con.execute(
                 "UPDATE profile SET total_slugs = $1 WHERE userid = $2", total_slugs, user_id
             )
-            #endregion
+            # endregion
             changes_embed = discord.Embed(
-                title = "Congrats! New Slug Caught",
-                description = f"{slug_name} added to your team!",
-                color = ctx.bot.main
+                title="Congrats! New Slug Caught",
+                description=f"{slug_name} added to your team!",
+                color=ctx.bot.main
             )
             changes_embed.set_thumbnail(url=img)
             await cembed.edit(embed=changes_embed)
@@ -748,7 +784,7 @@ class Explore(commands.Cog):
     async def generate(self, ctx):
         user_id = int(ctx.message.author.id)
 
-    @commands.command(max_concurrency = _mc)
+    @commands.command(max_concurrency=_mc)
     async def start(self, ctx):
         user_id = int(ctx.message.author.id)
 
@@ -767,7 +803,7 @@ class Explore(commands.Cog):
         if current_start == 1:
             return await ctx.send("You have already started your journey. If you want help, join the support server!")
 
-        # region Step 1 : Embed
+        # region Step 1 : Choosing a Slug
         thumbnail = "https://cdn.discordapp.com/attachments/972907787606712390/975835488747409468/1652727699337.png"
         embed1 = discord.Embed(
             title="Welcome to SlugShot Arena",
@@ -788,12 +824,10 @@ class Explore(commands.Cog):
         # embed1.set_author(name=self.bot.name,icon_url=self.bot.avatar_url)
         embed_step1 = await ctx.send(embed=embed1, content=None)
 
-        # endregion
 
-        # region Input
         def check(a):
             return a.author == ctx.message.author and (
-                        a.content == "1" or a.content == "2" or a.content == "3" or a.content == "4" or a.content == "5")
+                    a.content == "1" or a.content == "2" or a.content == "3" or a.content == "4" or a.content == "5")
 
         msg = await self.bot.wait_for('message', check=check)
         choice = int(msg.content)
@@ -810,9 +844,7 @@ class Explore(commands.Cog):
             slug_name = "flatulorhinkus"
         else:
             return await ctx.send("Choose a number. Retry later.")
-        # endregion
 
-        # region Database Changes
         slugdatadb = await self.bot.pg_con.fetch("SELECT * FROM slugdata WHERE slugname = $1", str(slug_name))
 
         slugtypeid = slugdatadb[0]['slugtypeid']
@@ -861,7 +893,7 @@ class Explore(commands.Cog):
                     # if containerdb == "[]" or containerdb is None:
                 if con_pos != 0:
                     break
-        print(container_pos, con_pos)
+        # print(container_pos, con_pos)
         await self.bot.pg_con.execute(
             "INSERT INTO allslugs (slugid, slugtypeid, userid, slugname, iv_attack, team_position, container_position) VALUES ($1, $2, $3, $4, $5, $6, $7)",
             str(slugid), str(slugtypeid), int(user_id), str(slug_name), int(iv_attack), str(team_pos),
@@ -870,7 +902,6 @@ class Explore(commands.Cog):
         await self.bot.pg_con.execute(
             "UPDATE profile SET total_slugs = $1 WHERE userid = $2", total_slugs, user_id
         )
-        # endregion
         # await ctx.send("Done. Rule the Arena!")
 
         embed2 = discord.Embed(
@@ -885,9 +916,27 @@ class Explore(commands.Cog):
         embed2.set_footer(text="You can earn more slugs through exploring the caverns!")
         await embed_step1.edit(embed=embed2)
 
-        # region STEP 2 : embed
+        #endregion
+
+        #region Step 2 : Getting Characters
+        char_embed = discord.Embed(
+            title = "Step 2 : Characters in SlugShot",
+            description = """
+            There are many characters in SlugShot. From SlugSlingers, Fighters, to Special Characters, all have different stats and unique abilities. So, unlock them and use them in battles.""",
+            color = ctx.bot.main
+        )
+        char2_embed = discord.Embed(
+            description="As your first character, I give you the first character, Young Eli, you have unlocked Young ELI!",
+            color=ctx.bot.main
+        )
+        char2_embed.set_author(name = "Master SlugShot")
+
+        await ctx.send(embed=char_embed)
+        await ctx.send(embed=char2_embed)
+
+        # region STEP 3 : Battle/Duel
         embed3 = discord.Embed(
-            title="Step 2 : Battle/Duel",
+            title="Step 3 : Battle/Duel",
             description="SlugShot offers a smooth battle experience with a text to text battle! The AI behind Battle Algorithm is designed to provide epic battles!",
             color=ctx.bot.main
         )
@@ -910,7 +959,7 @@ class Explore(commands.Cog):
             """,
         )
         embed3.set_thumbnail(url=thumbnail)
-        # embed3.set_author(name=self.bot.name, icon_url=self.bot.avatar_url)
+        # embed3.set_author(name=self.bot.user.name, icon_url=self.bot.avatar_url)
         embed_step2 = await ctx.send(embed=embed3, content=None)
         await asyncio.sleep(5)
 
@@ -923,7 +972,7 @@ class Explore(commands.Cog):
         embed_step2_battle.set_author(name="Champion SlugShot")
 
         # Battle Command HERE
-        await self.explore_battle(ctx, user_id, "Eli Shane","infurnus","aquabeek","frostcrawler","arachnet")
+        await self.explore_battle(ctx, user_id, "Eli Shane", "infurnus", "aquabeek", "frostcrawler", "arachnet")
         await ctx.send("Battle command under construction")
 
         embed_step3 = discord.Embed(
@@ -955,6 +1004,7 @@ class Explore(commands.Cog):
         )
         await ctx.send(embed=finish_embed)
         await self.bot.pg_con.execute("UPDATE profile SET start = $1 WHERE userid = $2", 1, user_id)
+
 
 def setup(bot):
     bot.add_cog(Explore(bot))

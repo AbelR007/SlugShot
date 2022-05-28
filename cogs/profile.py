@@ -1,6 +1,7 @@
 # Discord Modules
 import discord
 from discord.ext import commands
+import asyncio
 # For Profile Image
 from PIL import Image, ImageFont, ImageDraw
 from io import BytesIO
@@ -13,10 +14,27 @@ from cogs.explore import data_list
     team
 """
 
+def Fibonacci(n):
+    first = 20
+    second = 30
+    if n<= 0:
+        print("Incorrect input")
+    # First Fibonacci number is 0
+    elif n == 1:
+        return first
+    # Second Fibonacci number is 1
+    elif n == 2:
+        return second
+    else:
+        return Fibonacci(n-1)+Fibonacci(n-2)
 
 class Profile(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+    async def error_embed(self, ctx, content):
+        embed = discord.Embed(title="Error", description=f"{content}", color=ctx.bot.error)
+        return await ctx.send(embed=embed)
 
     async def types(self, ctx, type):
         if type == "fire":
@@ -68,6 +86,13 @@ class Profile(commands.Cog):
         profile = await self.bot.pg_con.fetch("SELECT * FROM profile WHERE userid = $1", user_id)
         return profile
 
+    async def shopdb(self, user_id):
+        shopdb = await self.bot.pg_con.fetchrow("SELECT * FROM shop WHERE userid = $1", user_id)
+        if not shopdb:
+            await self.bot.pg_con.execute("INSERT INTO shop(userid) VALUES ($1)",user_id)
+        shopdb = await self.bot.pg_con.fetchrow("SELECT * FROM shop WHERE userid = $1", user_id)
+        return shopdb
+
     @commands.command()
     async def profile(self, ctx, member: discord.Member = None):
         if member is None:
@@ -118,8 +143,11 @@ class Profile(commands.Cog):
             "D:\\Projects\\SlugShot\\img\\team_structure.png"
         )
         # "E:\\ABEL\\Discord Bots\\SlugShot\\SlugShot Codes\\profile_structure.png"
+        draw = None
 
         for slug_pos in range(1, 5):
+            slug_id = None
+            pos = None
             if slug_pos == 1:
                 slug_id = profiledb[0]['team1']
                 if slug_id == None:
@@ -268,7 +296,7 @@ class Profile(commands.Cog):
         await ctx.send(embed=embed)
 
     async def check_slugid(self, user_id, profiledb, pos):
-
+        slug_id = 0
         if pos == "1":
             slug_id = 0  # profiledb[0]['team1']
         elif pos == "2":
@@ -324,6 +352,90 @@ class Profile(commands.Cog):
                 await self.bot.pg_con.execute(
                     "UPDATE profile SET team4 = $1 WHERE userid = $2", first_slugid, user_id
                 )
+
+    @commands.command()
+    async def upgrade(self, ctx, team_pos: int):
+        user_id = ctx.message.author.id
+        profiledb = await self.profiledb(user_id)
+
+        if (team_pos == 1) or (team_pos == 2) or (team_pos == 3) or (team_pos == 4):
+            pass
+        else:
+            return await self.error_embed(ctx, "Invalid team position number.")
+
+        slug_id = profiledb[0][f'team{team_pos}']
+        if slug_id is None or slug_id == '':
+            return await self.error_embed(ctx, "No slug in that position.")
+
+        slugdb = await self.bot.pg_con.fetchrow("SELECT * FROM allslugs WHERE slugid = $1",slug_id)
+        slug_name = slugdb['slugname']
+        level = slugdb['level']
+        if level == 10:
+            return await self.error_embed(ctx, "Slug is already at its Max Level!")
+
+        shopdb = await self.shopdb(user_id)
+        slug_type = (await self.bot.pg_con.fetchrow("SELECT * FROM slugdata WHERE slugname = $1",slug_name))['type']
+        if slug_type == 'ice':
+            slug_type = 'water'
+        elif slug_type == 'electric' or slug_type == 'psychic':
+            slug_type = 'energy'
+        elif slug_type == 'metal' or slug_type == 'plant':
+            slug_type = 'earth'
+        elif slug_type == 'toxic':
+            slug_type = 'air'
+        else:
+            slug_type = slug_type
+        items = shopdb[f'{slug_type.lower()}_slug_food']
+        items_required = Fibonacci(level)
+        if items < items_required:
+            return await self.error_embed(ctx, f"Insufficient number of items.\nYou require {items_required} items for the next upgrade.\nYou currently have {items} items.")
+
+        embed = discord.Embed(
+            description=f"Are you sure you want to upgrade your slug for {items_required} items?",
+            color=ctx.bot.main
+        )
+        msg = await ctx.send(embed=embed)
+
+        timeout_embed = discord.Embed(
+            title=f"Timeout!",
+            color=ctx.bot.error
+        )
+
+        tick = "\U00002611"
+        cross = "\U0000274e"
+        await msg.add_reaction(tick)
+        await msg.add_reaction(cross)
+
+        def check(reaction, user):
+            return user == ctx.message.author and (
+                    str(reaction.emoji) == tick or
+                    str(reaction.emoji) == cross
+            )
+
+        try:
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=20.0, check=check)
+        except asyncio.TimeoutError:
+            return await msg.edit(embed=timeout_embed)
+        else:
+            pass
+
+        if str(reaction.emoji) == cross:
+            end_embed = discord.Embed(title="Cancelled",color=ctx.bot.invis)
+            return await msg.edit(embed=end_embed)
+
+        if str(reaction.emoji) == tick:
+            await self.bot.pg_con.execute(f"UPDATE allslugs SET level = $1 WHERE slugid = $2",level+1,slug_id)
+            await self.bot.pg_con.execute(f"UPDATE shop SET {slug_type}_slug_food = $1 WHERE userid = $2",items - items_required,user_id)
+
+            end_embed = discord.Embed(
+                title = "Slug Levelled Up!",
+                description = f"Your {slug_name.capitalize()} levelled up to Level {level + 1}",
+                color = ctx.bot.success
+            )
+            end_embed.set_thumbnail(
+                url = "https://cdn.discordapp.com/attachments/979725346658197524/980012690711904386/1653723624598.png"
+            )
+            return await msg.edit(embed=end_embed)
 
     @commands.command()
     async def boxswap(self, ctx, first, second):
