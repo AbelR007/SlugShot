@@ -1,6 +1,8 @@
-.dump
+#.dump
 .gitignore
 .env
 .version_cogs
-cogs2
+#cogs2
 .idea
+img
+fonts
