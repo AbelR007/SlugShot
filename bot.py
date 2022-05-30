@@ -197,7 +197,7 @@ async def on_ready():
 # Colour Schemes
 bot.main = discord.Colour.from_rgb(255, 133, 51)
 bot.success = discord.Colour.green()
-bot.error = discord.Color.from_rgb(48,49,54)  # discord.Colour.orange()
+bot.error = discord.Colour.red()  # discord.Color.from_rgb(48,49,54)  # discord.Colour.orange()
 bot.invis = discord.Color.from_rgb(48,49,54)  # "0x2F3136"
 # Default Emojis
 bot.coins = bot.gold = "<:gold:975692828116148265>"  # "\U0001fa99"

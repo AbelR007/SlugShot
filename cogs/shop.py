@@ -149,13 +149,16 @@ class Shop(commands.Cog):
             await msg.edit(embed=cancel_embed)
 
     @commands.command()
-    async def sell(self, ctx, no=1, *, item):
-        user_id = int(ctx.message.author.id)
-        profiledb = await self.profiledb(user_id)
-        shopdb = await self.shopdb(user_id)
+    async def sell(self, ctx):
+        await ctx.send("Work in Progress.")
+    # async def sell(self, ctx, no=1, *, item):
+    #     user_id = int(ctx.message.author.id)
+    #     profiledb = await self.profiledb(user_id)
+    #     shopdb = await self.shopdb(user_id)
+    #
+    #     all_items = list(items_list.keys())
+    #     item = autolist.autocorrect(item, all_items)
 
-        all_items = list(items_list.keys())
-        item = autolist.autocorrect(item, all_items)
 
 
 def setup(bot):

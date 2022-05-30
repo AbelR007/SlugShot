@@ -931,8 +931,23 @@ class Explore(commands.Cog):
         )
         char2_embed.set_author(name = "Master SlugShot")
 
+        charid = str(user_id)+"#001"
+        charname = "Young Eli"
+        chartypeid = "001"
+        char_class = "Fighter"
+        char_rarity = "Common"
+
+        await self.bot.pg_con.execute(
+            "INSERT INTO allchars(charid, userid, charname, chartypeid, class, rarity) VALUES($1, $2, $3, $4, $5, $6)",
+            charid, user_id, charname, chartypeid, char_class, char_rarity
+        )
+        await self.bot.pg_con.execute(
+            "UPDATE profile SET character = $1 WHERE userid = $2", charid, user_id
+        )
+
         await ctx.send(embed=char_embed)
         await ctx.send(embed=char2_embed)
+        await asyncio.sleep(2)
 
         # region STEP 3 : Battle/Duel
         embed3 = discord.Embed(
@@ -961,19 +976,19 @@ class Explore(commands.Cog):
         embed3.set_thumbnail(url=thumbnail)
         # embed3.set_author(name=self.bot.user.name, icon_url=self.bot.avatar_url)
         embed_step2 = await ctx.send(embed=embed3, content=None)
-        await asyncio.sleep(5)
+        await asyncio.sleep(3)
 
         embed_step2_battle = discord.Embed(
             title="Duel Challenge!",
             description="Champion of SlugShot Arena has challenged you!",
             color=ctx.bot.main
         )
-        embed_step2_battle.set_footer(text="Do you accept or not? `accept` or `decline`")
+        # embed_step2_battle.set_footer(text="Do you accept or not? `accept` or `decline`")
         embed_step2_battle.set_author(name="Champion SlugShot")
 
         # Battle Command HERE
         await self.explore_battle(ctx, user_id, "Eli Shane", "infurnus", "aquabeek", "frostcrawler", "arachnet")
-        await ctx.send("Battle command under construction")
+        # await ctx.send("Battle command under construction")
 
         embed_step3 = discord.Embed(
             title="Good Game!",

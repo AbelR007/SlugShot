@@ -143,7 +143,7 @@ class Profile(commands.Cog):
             "D:\\Projects\\SlugShot\\img\\team_structure.png"
         )
         # "E:\\ABEL\\Discord Bots\\SlugShot\\SlugShot Codes\\profile_structure.png"
-        draw = None
+        # draw = None
 
         for slug_pos in range(1, 5):
             slug_id = None
@@ -250,6 +250,12 @@ class Profile(commands.Cog):
         ability = allslugsdb[0]['abilityid']
         iv_attack = allslugsdb[0]['iv_attack']
         ev_attack = allslugsdb[0]['ev_attack']
+        item = allslugsdb[0]['item']
+        if item == '' or item is None:
+            item = "None"
+        else:
+            item = item.replace("_"," ").capitalize()
+
         slinger = self.bot.get_user(allslugsdb[0]['userid'])
         original_slinger = slinger
 
@@ -288,7 +294,13 @@ class Profile(commands.Cog):
         )
         embed.add_field(
             name="Ability",
-            value=f"{ability}"
+            value=f"{ability}",
+            inline = False
+        )
+        embed.add_field(
+            name = "Item",
+            value = f"{item}",
+            inline = False
         )
         embed.set_thumbnail(url=f"{imgurl}")
         embed.set_author(name=f"{slinger}", icon_url=f"{slinger.avatar_url}")
