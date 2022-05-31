@@ -21,7 +21,7 @@ regions = {
     "Wild Western Caverns": {
         "Shane Hideout": ["Kord Zane", "Pronto", "Trixie"],
         "Wild Spores Cavern": ["Pronto"],
-        "Dark Spores Cavern": ["Pronto"],
+        "Dark Spores Cavern": ["Pronto","Trixie"],
         "Herringbone Cavern": ["Pronto"],
         "Rocklock Cavern": ["Kord Zane"],
     },
@@ -77,9 +77,7 @@ class Explore(commands.Cog):
         profiledb = await self.bot.pg_con.fetch("SELECT * FROM profile WHERE userid = $1", user_id)
         return profiledb
 
-    async def get_slugid(self, userid: int, slugid: str, total_slugno: int):
-        slug_id = str(userid) + "#" + str(slugid) + "-" + str(total_slugno)
-        return slug_id
+    # region Location Commands : goto, loc, slugloc
 
     @commands.command(
         description="Shows your current location and region",
@@ -221,6 +219,12 @@ class Explore(commands.Cog):
         # else:
         #     pass
 
+    # endregion Location Commands : goto, loc, slugloc
+
+    async def get_slugid(self, userid: int, slugid: str, total_slugno: int):
+        slug_id = str(userid) + "#" + str(slugid) + "-" + str(total_slugno)
+        return slug_id
+
     async def error_embed(self, ctx, content):
         embed = discord.Embed(title="ERROR", description=f"{content}", color=ctx.bot.error)
         return await ctx.send(embed=embed)
@@ -332,7 +336,6 @@ class Explore(commands.Cog):
     #     await self.bot.pg_con.execute(
     #         "UPDATE allslugs SET exp = $1 WHERE slugid = $2", total_exp, slug_id
     #     )
-
     # region EXPLORE BATTLE FUNCTIONS >>>
     async def character_data(self, char):
         health = int(char['health'])
@@ -438,7 +441,7 @@ class Explore(commands.Cog):
 
             # endregion
 
-            # region Input for Action [Slug Choice]
+            # region Part 2 : Input for Action [Slug Choice]
             def check(a):
                 return a.author == ctx.message.author and (
                         (a.content == "1") or (a.content == "2") or (a.content == "3") or (a.content == "4") or (
@@ -481,19 +484,19 @@ class Explore(commands.Cog):
                 await ctx.send(f"There is no slug at position {choice}")
                 continue
 
-            # region User's Slug Details
+            # region Part 3 : User & Opponent's Slug Details
             allslugsdb = await self.bot.pg_con.fetch("SELECT * FROM allslugs WHERE slugid = $1", slug_id)
             slug_name = allslugsdb[0]['slugname']
             slug_rank = allslugsdb[0]['rank']
             slug_level = allslugsdb[0]['level']
             slug_ivattack = allslugsdb[0]['iv_attack']
             slug_evattack = allslugsdb[0]['ev_attack']
+            ability_id = int(allslugsdb[0]['abilityid'])
             slugdatadb = await self.bot.pg_con.fetch("SELECT * FROM slugdata WHERE slugname = $1", slug_name)
             slug_attack = slugdatadb[0]['attack']
             slug_speed = slugdatadb[0]['speed']
-            # endregion
 
-            # region Opponent's Slug Details [Since bot, choices are random]
+            # Opponent's Slug Details [Since bot, choices are random]
             opp_slug_name = random.choice([opp_slug1, opp_slug2, opp_slug3, opp_slug4])
             opp_slugdatadb = await self.bot.pg_con.fetch("SELECT * FROM slugdata WHERE slugname = $1", opp_slug_name)
             opp_slug_rank = random.randint(1, 10)
@@ -501,12 +504,13 @@ class Explore(commands.Cog):
             opp_slug_speed = opp_slugdatadb[0]['speed']
             # endregion
 
-            # region BATTLE Calculations for USER & OPPONENT
+            # region Part 4 : Battle Calculations
+            # region Previous BATTLE Calculations for USER & OPPONENT
             # user
             # Base_Attack = int((2 * slug_attack + slug_ivattack + (0.25 * slug_evattack)) * (1 / 2))
             # Slug_Attack = int(Base_Attack + (Base_Attack * slug_rank * 0.01) + slug_rank * 1.5)
             # Total_Damage = int(Slug_Attack + (Slug_Attack / 2 * (char_attack / opp_defense) * 0.09))
-
+            #endregion
             Total_Damage = await self.battle_algo(
                 char_attack, opp_defense, slug_attack, slug_ivattack, slug_evattack, slug_rank, slug_level
             )
@@ -515,7 +519,13 @@ class Explore(commands.Cog):
             opp_slug_damage = opp_slug_attack
             # endregion
 
-            # region Damage Details [CHECK for Health]
+            # region Part 5 : Ability Calculations
+            # if slug_name == "infurnus" and ability_id == 1:
+            #     slug_damage +
+            #     Flash Fire
+            # endregion
+
+            # region Part 6 : Damage Calculations [CHECK for Health]
             if opp_slug_speed > slug_speed:
                 char_health = char_health - opp_slug_damage
                 opp_health = opp_health - Total_Damage
@@ -780,10 +790,10 @@ class Explore(commands.Cog):
             await cembed.edit("You scared away that slug!")
         # End of EXPLORE
 
-    @commands.command()
-    async def generate(self, ctx):
-        user_id = int(ctx.message.author.id)
-
+    # Was supposed to be an admin command for generating slugs
+    # @commands.command()
+    # async def generate(self, ctx):
+    #     user_id = int(ctx.message.author.id)
     @commands.command(max_concurrency=_mc)
     async def start(self, ctx):
         user_id = int(ctx.message.author.id)
@@ -1019,7 +1029,6 @@ class Explore(commands.Cog):
         )
         await ctx.send(embed=finish_embed)
         await self.bot.pg_con.execute("UPDATE profile SET start = $1 WHERE userid = $2", 1, user_id)
-
 
 def setup(bot):
     bot.add_cog(Explore(bot))
