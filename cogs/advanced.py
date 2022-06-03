@@ -161,6 +161,23 @@ class Advanced_Battle_Modes(commands.Cog):
 
     # endregion
 
+    async def ability_calc(self, ability_used, slug_name, slug_ability_no, opp_shield):
+        abilitydb = await self.bot.pg_con.fetchrow(
+            "SELECT * FROM ability WHERE abilityno = $1 AND slugname = $2", slug_ability_no, slug_name
+        )
+        ability_damage = abilitydb['damage']
+
+        if slug_name == "infurnus":
+            if slug_ability_no == 2:
+                opp_shield -= ability_damage
+                ability_msg = "shoots a fireball at Opponent's Shield"
+                ability_used = 1
+            else:
+                return None
+        else:
+            return None
+        return ability_used, ability_msg, opp_shield
+
     async def battle(self, ctx, user_id, opp_char, opp_slug1, opp_slug2, opp_slug3, opp_slug4):
         profiledb = await self.profiledb(user_id)
         current_gold = int(profiledb[0]['gold'])
@@ -292,7 +309,7 @@ class Advanced_Battle_Modes(commands.Cog):
             # endregion
             # region Part 3 : User & Opponent's Slug Details
             allslugsdb = await self.bot.pg_con.fetchrow("SELECT * FROM allslugs WHERE slugid = $1", slug_id)
-            slug_name  = allslugsdb['slugname']
+            slug_name = allslugsdb['slugname']
             slugdata = await self.bot.pg_con.fetchrow("SELECT * FROM slugdata WHERE slugname = $1", slug_name)
 
             slug_level = allslugsdb['level']
@@ -302,20 +319,22 @@ class Advanced_Battle_Modes(commands.Cog):
             slug_attack = slugdata['attack']
             slug_defense = slugdata['defense']
             slug_speed = slugdata['speed']
-            slug_attack_speed = slugdata['attackspeed']
             slug_accuracy = slugdata['accuracy']
-            #
-            # slug_ability_no = allslugsdb['abilityno']
-            # abilitydb = await self.bot.pg_con.fetchrow("SELECT * FROM ability WHERE abilityno = $1 AND slugname = $2",
-            #                                         slug_ability_no, slug_name)
-            # if abilitydb:
-            #     slug_ability_name = abilitydb['ability']
-            #     slug_ability_damage = 100
-            # else:
-            #     slug_ability_name = None
-            #     slug_ability_damage = 0
 
-            # Opponent's Choice of Slug
+            slug_ability_no = allslugsdb['abilityno']
+
+            abilitydb = await self.bot.pg_con.fetchrow(
+                "SELECT * FROM ability WHERE abilityno = $1 AND slugname = $2", slug_ability_no, slug_name
+            )
+            if abilitydb:
+                slug_ability_name = abilitydb['ability']
+                slug_ability_damage = abilitydb['damage']
+                ability_speed = abilitydb['attackspeed']
+            else:
+                slug_ability_name = None
+                slug_ability_damage = 0
+
+            # region Opponent's Choice of Slug
             opp_slug_name = random.choice([opp_slug1,opp_slug2,opp_slug3,opp_slug4])
             opp_slugdata = await self.bot.pg_con.fetchrow("SELECT * FROM slugdata WHERE slugname = $1", opp_slug_name)
 
@@ -326,8 +345,8 @@ class Advanced_Battle_Modes(commands.Cog):
             opp_slug_attack = opp_slugdata['attack']
             opp_slug_defense = opp_slugdata['defense']
             opp_slug_speed = opp_slugdata['speed']
-            opp_slug_attack_speed = opp_slugdata['attackspeed']
             opp_slug_accuracy = opp_slugdata['accuracy']
+            # endregion Opponent's Details
             # endregion
             # region Part 4 : Battle Calculations
             total_damage = slug_attack
@@ -337,21 +356,20 @@ class Advanced_Battle_Modes(commands.Cog):
             opp_total_damage = opp_slug_attack
             # endregion
             # region Part 5 : Ability Calculations
-            # # ability_speed = 250
-            # ability_used = 0
-            #
-            # if abilitydb:
-            #     if (slug_name == "infurnus" and slug_ability_no == 1):
-            #         opp_health = opp_health - slug_ability_damage
-            #         ability_used = 1
-            #     else:
-            #         pass
-            #
-            # if ability_used == 1:
-            #     ab_embed = discord.Embed(
-            #         description = f"{slug_name.capitalize()} used {slug_ability_name} dealing {slug_ability_damage}"
-            #     )
-            #     await ctx.send(embed=ab_embed)
+            opp_ability_speed = 100
+            ability_msg = ''
+
+            ability_used = 0
+            if abilitydb:
+                # Unique Abilities
+                ability_used, ability_msg, opp_shield = await self.ability_calc(ability_used, slug_name, slug_ability_no, opp_shield)
+
+            if ability_used == 1:
+                ab_embed = discord.Embed(
+                    description = f"{slug_name.capitalize()}'s **{slug_ability_name.capitalize()}** {ability_msg} dealing {slug_ability_damage} damage",
+                    color = ctx.bot.main
+                )
+                await ctx.send(embed=ab_embed)
             # endregion
             # region Part 6 : Damage Calculations [CHECK for Health]
             ran_accuracy = random.randint(1,120)
@@ -393,7 +411,6 @@ class Advanced_Battle_Modes(commands.Cog):
                     ran_opp_accuracy, opp_slug_accuracy, char_health, opp_total_damage, shield,
                     str_data, opp_name, opp_slug_name
                 )
-
                 # region Health Check : Case 2
                 if opp_health <= 0:
                     win = 1

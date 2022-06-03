@@ -491,7 +491,7 @@ class Explore(commands.Cog):
             slug_level = allslugsdb[0]['level']
             slug_ivattack = allslugsdb[0]['iv_attack']
             slug_evattack = allslugsdb[0]['ev_attack']
-            ability_id = int(allslugsdb[0]['abilityid'])
+            # ability_id = int(allslugsdb[0]['abilityid'])
             slugdatadb = await self.bot.pg_con.fetch("SELECT * FROM slugdata WHERE slugname = $1", slug_name)
             slug_attack = slugdatadb[0]['attack']
             slug_speed = slugdatadb[0]['speed']
