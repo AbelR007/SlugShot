@@ -239,6 +239,10 @@ class Ability_Battle_Mode(commands.Cog):
             slug3_id)
         slug4_level, slug4_rank, slug4_health, slug4_attack, slug4_defense, slug4_speed, slug4_attack_speed, slug4_accuracy = await self.slug_data(
             slug4_id)
+
+        slug_data = {
+
+        }
         # endregion
 
         slug1_exp = slug2_exp = slug3_exp = slug4_exp = 0
@@ -295,30 +299,30 @@ class Ability_Battle_Mode(commands.Cog):
                 slug_id = slug1_id
                 slug1_exp += random_exp
 
-                slug_name = slug1_name
-                slug_level = slug1_level
-                slug_rank = slug1_rank
+                # slug_name = slug1_name
+                # slug_level = slug1_level
+                # slug_rank = slug1_rank
             elif choice == "2":
                 slug_id = slug2_id
                 slug2_exp += random_exp
 
-                slug_name = slug2_name
-                slug_level = slug2_level
-                slug_rank = slug2_rank
+                # slug_name = slug2_name
+                # slug_level = slug2_level
+                # slug_rank = slug2_rank
             elif choice == "3":
                 slug_id = slug3_id
                 slug3_exp += random_exp
 
-                slug_name = slug3_name
-                slug_level = slug3_level
-                slug_rank = slug3_rank
+                # slug_name = slug3_name
+                # slug_level = slug3_level
+                # slug_rank = slug3_rank
             elif choice == "4":
                 slug_id = slug4_id
                 slug4_exp += random_exp
 
-                slug_name = slug4_name
-                slug_level = slug4_level
-                slug_rank = slug4_rank
+                # slug_name = slug4_name
+                # slug_level = slug4_level
+                # slug_rank = slug4_rank
             elif choice == "ff":
                 return await ctx.send("You forfeit!")
             else:
@@ -329,12 +333,14 @@ class Ability_Battle_Mode(commands.Cog):
                 continue
             # endregion
             # region Part 3 : User & Opponent's Slug Details
-            # allslugsdb = await self.bot.pg_con.fetchrow("SELECT * FROM allslugs WHERE slugid = $1", slug_id)
-            # slug_name  = allslugsdb['slugname']
+            allslugsdb = await self.bot.pg_con.fetchrow("SELECT * FROM allslugs WHERE slugid = $1", slug_id)
+            slug_name  = allslugsdb['slugname']
             slugdata = await self.bot.pg_con.fetchrow("SELECT * FROM slugdata WHERE slugname = $1", slug_name)
+            # choice = ch
 
-            # slug_level = allslugsdb['level']
-            # slug_rank = allslugsdb['rank']
+            slug_level = allslugsdb['level']
+            slug_rank = allslugsdb['rank']
+
             slug_health = slugdata['health']
             slug_attack = slugdata['attack']
             slug_defense = slugdata['defense']

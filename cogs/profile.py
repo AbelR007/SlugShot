@@ -247,7 +247,7 @@ class Profile(commands.Cog):
         level = allslugsdb[0]['level']
         rank = allslugsdb[0]['rank']
         exp = allslugsdb[0]['exp']
-        ability = allslugsdb[0]['abilityid']
+        # ability = allslugsdb[0]['abilityno']
         iv_attack = allslugsdb[0]['iv_attack']
         ev_attack = allslugsdb[0]['ev_attack']
         item = allslugsdb[0]['item']
@@ -292,11 +292,11 @@ class Profile(commands.Cog):
             """,
             inline=False
         )
-        embed.add_field(
-            name="Ability",
-            value=f"{ability}",
-            inline = False
-        )
+        # embed.add_field(
+        #     name="Ability",
+        #     value=f"{ability}",
+        #     inline = False
+        # )
         embed.add_field(
             name = "Item",
             value = f"{item}",
