@@ -3,7 +3,7 @@ import random
 import asyncio
 from discord.ext import commands, tasks
 
-class Advanced_Battle_Modes(commands.Cog):
+class Ability_Battle_Mode(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -153,6 +153,26 @@ class Advanced_Battle_Modes(commands.Cog):
                 if shield < 0:
                     shield = 0
         return char_health, shield
+
+    async def slug_data(self, slug_id):
+        allslugsdb = await self.bot.pg_con.fetchrow("SELECT * FROM allslugs WHERE slugid = $1", slug_id)
+        if not allslugsdb:
+            return None
+        slug_name = allslugsdb['slugname']
+        slugdata = await self.bot.pg_con.fetchrow("SELECT * FROM slugdata WHERE slugname = $1", slug_name)
+
+        slug_level = allslugsdb['level']
+        slug_rank = allslugsdb['rank']
+
+        slug_health = slugdata['health']
+        slug_attack = slugdata['attack']
+        slug_defense = slugdata['defense']
+        slug_speed = slugdata['speed']
+        slug_attack_speed = slugdata['attackspeed']
+        slug_accuracy = slugdata['accuracy']
+
+        return slug_level, slug_rank, slug_health, slug_attack, slug_defense, slug_speed, slug_attack_speed, slug_accuracy
+
     # endregion
 
     async def battle(self, ctx, user_id, opp_char, opp_slug1, opp_slug2, opp_slug3, opp_slug4):
@@ -212,6 +232,14 @@ class Advanced_Battle_Modes(commands.Cog):
         shield = slug1_health + slug2_health + slug3_health + slug4_health
         opp_shield = opp_slug1_health + opp_slug2_health + opp_slug3_health + opp_slug4_health
         # endregion
+        # region User's Slug Details
+        slug1_level, slug1_rank, slug1_health, slug1_attack, slug1_defense, slug1_speed, slug1_attack_speed, slug1_accuracy = await self.slug_data(slug1_id)
+        slug2_level, slug2_rank, slug2_health, slug2_attack, slug2_defense, slug2_speed, slug2_attack_speed, slug2_accuracy = await self.slug_data(slug2_id)
+        slug3_level, slug3_rank, slug3_health, slug3_attack, slug3_defense, slug3_speed, slug3_attack_speed, slug3_accuracy = await self.slug_data(
+            slug3_id)
+        slug4_level, slug4_rank, slug4_health, slug4_attack, slug4_defense, slug4_speed, slug4_attack_speed, slug4_accuracy = await self.slug_data(
+            slug4_id)
+        # endregion
 
         slug1_exp = slug2_exp = slug3_exp = slug4_exp = 0
         win = 0
@@ -266,15 +294,31 @@ class Advanced_Battle_Modes(commands.Cog):
             if choice == "1":
                 slug_id = slug1_id
                 slug1_exp += random_exp
+
+                slug_name = slug1_name
+                slug_level = slug1_level
+                slug_rank = slug1_rank
             elif choice == "2":
                 slug_id = slug2_id
                 slug2_exp += random_exp
+
+                slug_name = slug2_name
+                slug_level = slug2_level
+                slug_rank = slug2_rank
             elif choice == "3":
                 slug_id = slug3_id
                 slug3_exp += random_exp
+
+                slug_name = slug3_name
+                slug_level = slug3_level
+                slug_rank = slug3_rank
             elif choice == "4":
                 slug_id = slug4_id
                 slug4_exp += random_exp
+
+                slug_name = slug4_name
+                slug_level = slug4_level
+                slug_rank = slug4_rank
             elif choice == "ff":
                 return await ctx.send("You forfeit!")
             else:
@@ -285,20 +329,19 @@ class Advanced_Battle_Modes(commands.Cog):
                 continue
             # endregion
             # region Part 3 : User & Opponent's Slug Details
-            allslugsdb = await self.bot.pg_con.fetchrow("SELECT * FROM allslugs WHERE slugid = $1", slug_id)
-            slug_name  = allslugsdb['slugname']
+            # allslugsdb = await self.bot.pg_con.fetchrow("SELECT * FROM allslugs WHERE slugid = $1", slug_id)
+            # slug_name  = allslugsdb['slugname']
             slugdata = await self.bot.pg_con.fetchrow("SELECT * FROM slugdata WHERE slugname = $1", slug_name)
 
-            slug_level = allslugsdb['level']
-            slug_rank = allslugsdb['rank']
-
+            # slug_level = allslugsdb['level']
+            # slug_rank = allslugsdb['rank']
             slug_health = slugdata['health']
             slug_attack = slugdata['attack']
             slug_defense = slugdata['defense']
             slug_speed = slugdata['speed']
             slug_attack_speed = slugdata['attackspeed']
             slug_accuracy = slugdata['accuracy']
-            #
+
             # slug_ability_no = allslugsdb['abilityno']
             # abilitydb = await self.bot.pg_con.fetchrow("SELECT * FROM ability WHERE abilityno = $1 AND slugname = $2",
             #                                         slug_ability_no, slug_name)
@@ -451,8 +494,8 @@ class Advanced_Battle_Modes(commands.Cog):
             # endregion
         return win
 
-    @commands.command(aliases=['adv'])
-    async def advance(self, ctx):
+    @commands.command(aliases=['abi'])
+    async def ability(self, ctx):
         user_id = int(ctx.message.author.id)
         await ctx.send("The BEGINNING of Advanced Battle Mode : Strato")
 
@@ -472,10 +515,10 @@ class Advanced_Battle_Modes(commands.Cog):
         opp_slug1 = "rammstone"
         opp_slug2 = "infurnus"
         opp_slug3 = "frostcrawler"
-        opp_slug4 = "flaringo"
+        opp_slug4 = "speedstinger"
 
         result = await self.battle(ctx, user_id,  opp_char, opp_slug1, opp_slug2, opp_slug3, opp_slug4)
         await ctx.send("The END of Advanced Battle Mode : Strato")
 
 def setup(bot):
-    bot.add_cog(Advanced_Battle_Modes(bot))
+    bot.add_cog(Ability_Battle_Mode(bot))
