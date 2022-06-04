@@ -142,7 +142,7 @@ class Advanced_Battle_Modes(commands.Cog):
         return Total_Damage
 
     async def accuracy_check(self, ran_accuracy, slug_accuracy, char_health, opp_total_damage, shield,
-                             str_data, char_name, slug_name):
+                             action_str, char_name, slug_name):
         if ran_accuracy < slug_accuracy:
             char_health = char_health - opp_total_damage
         else:
@@ -156,27 +156,38 @@ class Advanced_Battle_Modes(commands.Cog):
         str = f"""
             **{char_name} used {slug_name}**!
             {slug_name.capitalize()} dealt {opp_total_damage} damage"""
-        str_data = str_data + str
-        return char_health, shield, str_data
+        action_str = action_str + str
+        return char_health, shield, action_str
 
     # endregion
-
-    async def ability_calc(self, ability_used, slug_name, slug_ability_no, opp_shield):
+    # region  Ability Calculations
+    async def ability_calc(self, ability_used, slug_name, slug_ability_no):
         abilitydb = await self.bot.pg_con.fetchrow(
             "SELECT * FROM ability WHERE abilityno = $1 AND slugname = $2", slug_ability_no, slug_name
         )
         ability_damage = abilitydb['damage']
+        ability_msg = abilitydb['battlemsg']
+
 
         if slug_name == "infurnus":
             if slug_ability_no == 2:
-                opp_shield -= ability_damage
-                ability_msg = "shoots a fireball at Opponent's Shield"
-                ability_used = 1
+                # ability_msg = "shoots a fireball at Opponent's Shield"
+                ability_used = 2
+
             else:
-                return None
+                ability_used = 0
         else:
-            return None
-        return ability_used, ability_msg, opp_shield
+            ability_used = 0
+            ability_msg = None
+            # return None
+        return ability_used, ability_msg
+
+    async def ability_battle_calc(self, slug_name, slug_ability_no, opp_shield, slug_ability_damage):
+        if slug_name == "infurnus":
+            if slug_ability_no == 2:
+                opp_shield -= slug_ability_damage
+        return opp_shield
+    # endregion
 
     async def battle(self, ctx, user_id, opp_char, opp_slug1, opp_slug2, opp_slug3, opp_slug4):
         profiledb = await self.profiledb(user_id)
@@ -240,6 +251,7 @@ class Advanced_Battle_Modes(commands.Cog):
         win = 0
         while True:
             # region Part 1 : Battle Embed
+            action_str = ""
             battle_embed = discord.Embed(
                 title=f"{char_name} VS {opp_name}",
                 color=ctx.bot.main
@@ -362,54 +374,53 @@ class Advanced_Battle_Modes(commands.Cog):
             ability_used = 0
             if abilitydb:
                 # Unique Abilities
-                ability_used, ability_msg, opp_shield = await self.ability_calc(ability_used, slug_name, slug_ability_no, opp_shield)
-
-            if ability_used == 1:
-                ab_embed = discord.Embed(
-                    description = f"{slug_name.capitalize()}'s **{slug_ability_name.capitalize()}** {ability_msg} dealing {slug_ability_damage} damage",
-                    color = ctx.bot.main
+                ability_used, ability_msg = await self.ability_calc(
+                    ability_used, slug_name, slug_ability_no
                 )
-                await ctx.send(embed=ab_embed)
+
+            if ability_used == 2:
+                opp_shield = await self.ability_battle_calc(
+                    slug_name, slug_ability_no,
+                    opp_shield, slug_ability_damage
+                )
+                action_str = action_str + f"{slug_name.capitalize()}'s **{slug_ability_name.capitalize()}** {ability_msg} dealing {slug_ability_damage} damage"
+                ability_used = 1
+
             # endregion
             # region Part 6 : Damage Calculations [CHECK for Health]
             ran_accuracy = random.randint(1,120)
             ran_opp_accuracy = random.randint(1,120)
-            str_data = ""
 
             if opp_slug_speed > slug_speed:
-                char_health, shield, str_data = await self.accuracy_check(
+                char_health, shield, action_str = await self.accuracy_check(
                     ran_opp_accuracy, opp_slug_accuracy, char_health, opp_total_damage, shield,
-                    str_data, opp_name, opp_slug_name
+                    action_str, opp_name, opp_slug_name
                 )
-                opp_health, opp_shield, str_data = await self.accuracy_check(
+                opp_health, opp_shield, action_str = await self.accuracy_check(
                     ran_accuracy, slug_accuracy, opp_health, total_damage, opp_shield,
-                    str_data, char_name, slug_name
+                    action_str, char_name, slug_name
                 )
-
                 # region Health Check : Case 1
                 if char_health <= 0:
                     await self.you_lost_embed(ctx, char_name, opp_name, opp_imgurl, opp_slug_name)
                     break
-                elif opp_health <= 0:
+                if opp_health <= 0:
                     await self.you_won_embed(
                         ctx, user_id, char_name, opp_name, slug_name, char_imgurl, gold_prize, gold,
                         slug1_id, slug1_exp, slug2_id, slug2_exp, slug3_id, slug3_exp, slug4_id, slug4_exp
                     )
                     win = 1
                     break
-                else:
-                    act_embed = discord.Embed(description = f"{str_data}",color = ctx.bot.main)
-                    await ctx.send(embed=act_embed)
                 # endregion
 
             elif slug_speed > opp_slug_speed:
-                opp_health, opp_shield, str_data = await self.accuracy_check(
+                opp_health, opp_shield, action_str = await self.accuracy_check(
                     ran_accuracy, slug_accuracy, opp_health, total_damage, opp_shield,
-                    str_data, char_name, slug_name
+                    action_str, char_name, slug_name
                 )
-                char_health, shield, str_data = await self.accuracy_check(
+                char_health, shield, action_str = await self.accuracy_check(
                     ran_opp_accuracy, opp_slug_accuracy, char_health, opp_total_damage, shield,
-                    str_data, opp_name, opp_slug_name
+                    action_str, opp_name, opp_slug_name
                 )
                 # region Health Check : Case 2
                 if opp_health <= 0:
@@ -419,22 +430,19 @@ class Advanced_Battle_Modes(commands.Cog):
                         slug1_id, slug1_exp, slug2_id, slug2_exp, slug3_id, slug3_exp, slug4_id, slug4_exp
                     )
                     break
-                elif char_health <= 0:
+                if char_health <= 0:
                     await self.you_lost_embed(ctx, char_name, opp_name, opp_imgurl, opp_slug_name)
                     break
-                else:
-                    act_embed = discord.Embed(description=f"{str_data}", color=ctx.bot.main)
-                    await ctx.send(embed=act_embed)
                 # endregion
 
             else:  # when slug_speed == opp_slug_speed
-                char_health, shield, str_data = await self.accuracy_check(
+                char_health, shield, action_str = await self.accuracy_check(
                     ran_opp_accuracy, opp_slug_accuracy, char_health, opp_total_damage, shield,
-                    str_data, opp_name, opp_slug_name
+                    action_str, opp_name, opp_slug_name
                 )
-                opp_health, opp_shield, str_data = await self.accuracy_check(
+                opp_health, opp_shield, action_str = await self.accuracy_check(
                     ran_accuracy, slug_accuracy, opp_health, total_damage, opp_shield,
-                    str_data, char_name, slug_name
+                    action_str, char_name, slug_name
                 )
 
                 # region Previous Usages
@@ -470,17 +478,17 @@ class Advanced_Battle_Modes(commands.Cog):
                 if char_health <= 0:
                     await self.you_lost_embed(ctx, char_name, opp_name, opp_imgurl, opp_slug_name)
                     break
-                elif opp_health <= 0:
+                if opp_health <= 0:
                     await self.you_won_embed(
                         ctx, user_id, char_name, opp_name, slug_name, char_imgurl, gold_prize, gold,
                         slug1_id, slug1_exp, slug2_id, slug2_exp, slug3_id, slug3_exp, slug4_id, slug4_exp
                     )
                     win = 1
                     break
-                else:
-                    act_embed = discord.Embed(description=f"{str_data}", color=ctx.bot.main)
-                    await ctx.send(embed=act_embed)
                 # endregion
+            # Action Embed after each command
+            act_embed = discord.Embed(description=f"{action_str}", color=ctx.bot.main)
+            await ctx.send(embed=act_embed)
             # endregion
         return win
 
