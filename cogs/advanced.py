@@ -153,10 +153,8 @@ class Advanced_Battle_Modes(commands.Cog):
                 shield -= opp_total_damage
                 if shield < 0:
                     shield = 0
-        str = f"""
-            **{char_name} used {slug_name}**!
-            {slug_name.capitalize()} dealt {opp_total_damage} damage"""
-        action_str = action_str + str
+
+        action_str += f"{slug_name.capitalize()} dealt {opp_total_damage} damage"
         return char_health, shield, action_str
 
     # endregion
@@ -391,11 +389,13 @@ class Advanced_Battle_Modes(commands.Cog):
             ran_accuracy = random.randint(1,120)
             ran_opp_accuracy = random.randint(1,120)
 
-            if opp_slug_speed > slug_speed:
+            if opp_slug_speed >= slug_speed:
+                action_str += f"\n**{char_name} used {slug_name}**!\n"
                 char_health, shield, action_str = await self.accuracy_check(
                     ran_opp_accuracy, opp_slug_accuracy, char_health, opp_total_damage, shield,
                     action_str, opp_name, opp_slug_name
                 )
+                action_str += f"\n**{opp_name} used {opp_slug_name}**!\n"
                 opp_health, opp_shield, action_str = await self.accuracy_check(
                     ran_accuracy, slug_accuracy, opp_health, total_damage, opp_shield,
                     action_str, char_name, slug_name
@@ -412,12 +412,13 @@ class Advanced_Battle_Modes(commands.Cog):
                     win = 1
                     break
                 # endregion
-
-            elif slug_speed > opp_slug_speed:
+            if slug_speed > opp_slug_speed:
+                action_str += f"\n**{opp_name} used {opp_slug_name}**!\n"
                 opp_health, opp_shield, action_str = await self.accuracy_check(
                     ran_accuracy, slug_accuracy, opp_health, total_damage, opp_shield,
                     action_str, char_name, slug_name
                 )
+                action_str += f"\n**{char_name} used {slug_name}**!\n"
                 char_health, shield, action_str = await self.accuracy_check(
                     ran_opp_accuracy, opp_slug_accuracy, char_health, opp_total_damage, shield,
                     action_str, opp_name, opp_slug_name
@@ -434,17 +435,6 @@ class Advanced_Battle_Modes(commands.Cog):
                     await self.you_lost_embed(ctx, char_name, opp_name, opp_imgurl, opp_slug_name)
                     break
                 # endregion
-
-            else:  # when slug_speed == opp_slug_speed
-                char_health, shield, action_str = await self.accuracy_check(
-                    ran_opp_accuracy, opp_slug_accuracy, char_health, opp_total_damage, shield,
-                    action_str, opp_name, opp_slug_name
-                )
-                opp_health, opp_shield, action_str = await self.accuracy_check(
-                    ran_accuracy, slug_accuracy, opp_health, total_damage, opp_shield,
-                    action_str, char_name, slug_name
-                )
-
                 # region Previous Usages
                 # if ran_accuracy < slug_accuracy:
                 #     char_health = char_health - opp_total_damage
@@ -474,18 +464,7 @@ class Advanced_Battle_Modes(commands.Cog):
                 #                         opp_total_damage)
 
                 # endregion
-                # region Health Check : Case 1
-                if char_health <= 0:
-                    await self.you_lost_embed(ctx, char_name, opp_name, opp_imgurl, opp_slug_name)
-                    break
-                if opp_health <= 0:
-                    await self.you_won_embed(
-                        ctx, user_id, char_name, opp_name, slug_name, char_imgurl, gold_prize, gold,
-                        slug1_id, slug1_exp, slug2_id, slug2_exp, slug3_id, slug3_exp, slug4_id, slug4_exp
-                    )
-                    win = 1
-                    break
-                # endregion
+
             # Action Embed after each command
             act_embed = discord.Embed(description=f"{action_str}", color=ctx.bot.main)
             await ctx.send(embed=act_embed)
