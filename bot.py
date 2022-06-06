@@ -251,6 +251,8 @@ class MyHelp(commands.MinimalHelpCommand):
 
     # colour_id =
     async def send_bot_help(self, mapping):
+        if self.context.author.id != 636181565621141505:
+            return await self.get_destination().send("Use `.menu` command to get a list of helpful commands")
         embed = discord.Embed(title="SlugShot", description="Use the .menu for a better understanding", colour=bot.main)
         for cog, commands in mapping.items():
             filtered = await self.filter_commands(commands, sort=True)

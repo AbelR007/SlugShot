@@ -159,13 +159,12 @@ class Advanced_Battle_Modes(commands.Cog):
 
     # endregion
     # region  Ability Calculations
-    async def ability_calc(self, ability_used, slug_name, slug_ability_no):
+    async def ability_calc(self, slug_name, slug_ability_no):
         abilitydb = await self.bot.pg_con.fetchrow(
             "SELECT * FROM ability WHERE abilityno = $1 AND slugname = $2", slug_ability_no, slug_name
         )
         # ability_damage = abilitydb['damage']
         ability_msg = abilitydb['battlemsg']
-
 
         if slug_name == "infurnus":
             if slug_ability_no == 2:
@@ -180,7 +179,9 @@ class Advanced_Battle_Modes(commands.Cog):
             # return None
         return ability_used, ability_msg
 
-    async def ability_battle_calc(self, slug_name, slug_ability_no, opp_shield, slug_ability_damage, opp_health):
+    async def ability_battle_calc(
+            self, slug_name, slug_ability_no, opp_shield, slug_ability_damage, opp_health, slug_total_damage
+    ):
         if slug_name == "infurnus":
             if slug_ability_no == 2:
                 # region Flash Fire
@@ -190,10 +191,18 @@ class Advanced_Battle_Modes(commands.Cog):
                         opp_shield = 0
                 else:
                     opp_health -= slug_ability_damage
+                slug_total_damage = slug_total_damage - int(slug_ability_damage - slug_ability_damage/3)
                 # endregion Flash Fire
-            else:
-                pass
-        return opp_shield, opp_health
+
+        elif slug_name == 'rammstone':
+            if slug_ability_no == 2:
+                # region Battleup
+                slug_total_damage = slug_total_damage + slug_ability_damage
+                # endregion Battleup
+
+        else:
+            pass
+        return opp_shield, opp_health, slug_total_damage
     # endregion
 
     async def battle(self, ctx, user_id, opp_char, opp_slug1, opp_slug2, opp_slug3, opp_slug4):
@@ -382,11 +391,11 @@ class Advanced_Battle_Modes(commands.Cog):
             # endregion Opponent's Details
             # endregion
             # region Part 4 : Battle Calculations
-            total_damage = slug_attack
+            total_damage = slug_total_damage = slug_attack
             # total_damage = await self.battle_algo(
             #     char_attack, opp_defense, slug_attack, slug_ivattack, slug_evattack, slug_rank, slug_level
             # )
-            opp_total_damage = opp_slug_attack
+            opp_total_damage = opp_slug_total_damage = opp_slug_attack
             # endregion
             # region Part 5 : Ability Calculations
             ability_msg = ''
@@ -395,13 +404,13 @@ class Advanced_Battle_Modes(commands.Cog):
             if abilitydb:
                 # Unique Abilities
                 ability_used, ability_msg = await self.ability_calc(
-                    ability_used, slug_name, slug_ability_no
+                    slug_name, slug_ability_no
                 )
 
             if ability_used == 2:
-                opp_shield, opp_health = await self.ability_battle_calc(
+                opp_shield, opp_health, total_damage = await self.ability_battle_calc(
                     slug_name, slug_ability_no,
-                    opp_shield, slug_ability_damage, opp_health
+                    opp_shield, slug_ability_damage, opp_health, total_damage
                 )
                 action_str = action_str + f"{slug_name.capitalize()}'s **{slug_ability_name.capitalize()}** {ability_msg} dealing {slug_ability_damage} damage\n"
                 ability_used = 1
@@ -412,29 +421,29 @@ class Advanced_Battle_Modes(commands.Cog):
             if opp_abilitydb:
                 # Unique Abilities
                 opp_ability_used, opp_ability_msg = await self.ability_calc(
-                    opp_ability_used, opp_slug_name, opp_slug_ability_no
+                    opp_slug_name, opp_slug_ability_no
                 )
 
             if opp_ability_used == 2:
-                shield, char_health = await self.ability_battle_calc(
+                shield, char_health, opp_total_damage = await self.ability_battle_calc(
                     opp_slug_name, opp_slug_ability_no,
-                    shield, opp_slug_ability_damage, char_health
+                    shield, opp_slug_ability_damage, char_health, opp_total_damage
                 )
                 action_str += f"{opp_slug_name.capitalize()}'s **{opp_slug_ability_name.capitalize()}** {opp_ability_msg} dealing {opp_slug_ability_damage} damage\n"
                 opp_ability_used = 1
             # endregion of Opponent's Ability
             # endregion
-            # region Part 6 : Damage Calculations [CHECK for Health]
+            # region Part 6 : Damage Calculations
             ran_accuracy = random.randint(1,120)
             ran_opp_accuracy = random.randint(1,120)
 
             if opp_slug_speed >= slug_speed:
-                action_str += f"**{char_name} used {slug_name}**!\n"
+                action_str += f"**{opp_name} used {opp_slug_name}**!\n"
                 char_health, shield, action_str = await self.accuracy_check(
                     ran_opp_accuracy, opp_slug_accuracy, char_health, opp_total_damage, shield,
                     action_str, opp_name, opp_slug_name
                 )
-                action_str += f"**{opp_name} used {opp_slug_name}**!\n"
+                action_str += f"**{char_name} used {slug_name}**!\n"
                 opp_health, opp_shield, action_str = await self.accuracy_check(
                     ran_accuracy, slug_accuracy, opp_health, total_damage, opp_shield,
                     action_str, char_name, slug_name
@@ -451,13 +460,13 @@ class Advanced_Battle_Modes(commands.Cog):
                     win = 1
                     break
                 # endregion
-            if slug_speed > opp_slug_speed:
-                action_str += f"\n**{opp_name} used {opp_slug_name}**!\n"
+            else:  # if slug_speed > opp_slug_speed:
+                action_str += f"**{char_name} used {slug_name}**!\n"
                 opp_health, opp_shield, action_str = await self.accuracy_check(
                     ran_accuracy, slug_accuracy, opp_health, total_damage, opp_shield,
                     action_str, char_name, slug_name
                 )
-                action_str += f"\n**{char_name} used {slug_name}**!\n"
+                action_str += f"**{opp_name} used {opp_slug_name}**!\n"
                 char_health, shield, action_str = await self.accuracy_check(
                     ran_opp_accuracy, opp_slug_accuracy, char_health, opp_total_damage, shield,
                     action_str, opp_name, opp_slug_name
