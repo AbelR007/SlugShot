@@ -203,6 +203,23 @@ class Advanced_Battle_Modes(commands.Cog):
         else:
             pass
         return opp_shield, opp_health, slug_total_damage
+
+    async def ability_before_battle(self, slug_data):
+        return slug_data
+
+    async def ability_after_attack(self, slug_data, slug_name, slug_ability_no, ch):
+        current_damage = slug_data[f'slug{ch}_base_attack']
+        if slug_name == "rammstone":
+            if slug_ability_no == 2:
+                current_damage = current_damage + current_damage*(10/100)
+
+            else:
+                pass
+        else:
+            pass
+        # Changes
+        slug_data[f'slug{ch}_base_attack'] = int(current_damage)
+        return slug_data
     # endregion
 
     async def battle(self, ctx, user_id, opp_char, opp_slug1, opp_slug2, opp_slug3, opp_slug4):
@@ -237,7 +254,19 @@ class Advanced_Battle_Modes(commands.Cog):
         slug2_health = await self.slugdata_specific(slug2_name,'health')
         slug3_health = await self.slugdata_specific(slug3_name,'health')
         slug4_health = await self.slugdata_specific(slug4_name,'health')
+
         # endregion
+        slug_data = {
+            'slug1_name': slug1_name,
+            'slug2_name': slug2_name,
+            'slug3_name': slug3_name,
+            'slug4_name': slug4_name,
+
+            'slug1_base_attack': await self.slugdata_specific(slug1_name,'attack'),
+            'slug2_base_attack': await self.slugdata_specific(slug2_name,'attack'),
+            'slug3_base_attack': await self.slugdata_specific(slug3_name,'attack'),
+            'slug4_base_attack': await self.slugdata_specific(slug1_name,'attack'),
+        }
         # region Opponent : Character Details
         opp_name = opp_char
         oppchardb = await self.bot.pg_con.fetchrow("SELECT * FROM chardata WHERE charname = $1", opp_name)
@@ -265,7 +294,10 @@ class Advanced_Battle_Modes(commands.Cog):
 
         slug1_exp = slug2_exp = slug3_exp = slug4_exp = 0
         win = 0
+
+        slug_data = await self.ability_before_battle(slug_data)
         while True:
+            # print(slug_data)
             # region Part 1 : Battle Embed
             action_str = ""
             battle_embed = discord.Embed(
@@ -330,6 +362,7 @@ class Advanced_Battle_Modes(commands.Cog):
                 return await ctx.send("You forfeit!")
             else:
                 return await ctx.send("Enter a valid option | Retry later")
+            ch = int(choice)
 
             if slug_id == '' or slug_id is None:
                 await ctx.send(f"There is no slug at position {choice}")
@@ -344,7 +377,7 @@ class Advanced_Battle_Modes(commands.Cog):
             slug_rank = allslugsdb['rank']
 
             slug_health = slugdata['health']
-            slug_attack = slugdata['attack']
+            slug_base_attack = slug_data[f'slug{ch}_base_attack']  # slugdata['attack']
             slug_defense = slugdata['defense']
             slug_speed = slugdata['speed']
             slug_accuracy = slugdata['accuracy']
@@ -376,7 +409,6 @@ class Advanced_Battle_Modes(commands.Cog):
             opp_slug_accuracy = opp_slugdata['accuracy']
 
             opp_slug_ability_no = 2  # random.randint(1,2)
-            print(opp_slug_ability_no)
 
             opp_abilitydb = await self.bot.pg_con.fetchrow(
                 "SELECT * FROM ability WHERE abilityno = $1 AND slugname = $2", opp_slug_ability_no, opp_slug_name
@@ -391,9 +423,9 @@ class Advanced_Battle_Modes(commands.Cog):
             # endregion Opponent's Details
             # endregion
             # region Part 4 : Battle Calculations
-            total_damage = slug_total_damage = slug_attack
+            total_damage = slug_total_damage = slug_base_attack
             # total_damage = await self.battle_algo(
-            #     char_attack, opp_defense, slug_attack, slug_ivattack, slug_evattack, slug_rank, slug_level
+            #     char_attack, opp_defense, slug_base_attack, slug_ivattack, slug_evattack, slug_rank, slug_level
             # )
             opp_total_damage = opp_slug_total_damage = opp_slug_attack
             # endregion
@@ -517,6 +549,7 @@ class Advanced_Battle_Modes(commands.Cog):
             act_embed = discord.Embed(description=f"{action_str}", color=ctx.bot.main)
             await ctx.send(embed=act_embed)
             # endregion
+            slug_data = await self.ability_after_attack(slug_data, slug_name, slug_ability_no, ch)
         return win
 
     @commands.command(aliases=['adv'])
