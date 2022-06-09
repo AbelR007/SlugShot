@@ -164,6 +164,27 @@ class Slug_Details(commands.Cog):
             type_emoji, embed_color = await self.types(ctx, type)
             rarity_emoji, stars = await self.rarities(ctx, rarity.lower())
 
+            # region Ability Str
+            ability_str = ''
+            ability_countdb = (await self.bot.pg_con.fetchrow(
+                "SELECT COUNT(slugname) FROM ability WHERE slugname = $1",
+                slug_name
+            ))['count']
+            for i in range(0, ability_countdb+1):
+                abilityno = i+1
+                if abilityno == 1:
+                    ability_str += "**Base Ability :**\nDeals the normal base damage to the opposing slug\n"
+                    continue
+
+                abilitydb = await self.bot.pg_con.fetchrow(
+                    "SELECT * FROM ability WHERE slugname = $1 AND abilityno = $2",
+                    slug_name, abilityno
+                )
+                ability_name = abilitydb['ability']
+                ability_desc = abilitydb['desc']
+                ability_rarity = abilitydb['rarity']
+                ability_str += f"**{ability_name} ({ability_rarity}):**\n{ability_desc}\n"
+
             info_embed = discord.Embed(
                 title = f"{slug_emoji} {slug_name.capitalize()} #{typeid}",
                 description = f"{desc}",
@@ -191,6 +212,11 @@ class Slug_Details(commands.Cog):
                     **Speed**: {speed}
                 """,
                 inline=False
+            )
+            info_embed.add_field(
+                name = "Abilities",
+                value = f"{ability_str}",
+                inline = False
             )
             info_embed.set_thumbnail(
                 url = f"{protoimgurl}"

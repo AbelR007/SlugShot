@@ -128,6 +128,11 @@ class Advanced_Battle_Modes(commands.Cog):
         statdata = slugdata[f'{stat}']
         return statdata
 
+    async def slugdata_fromdb(self, slug_id, stat):
+        allslugs = await self.bot.pg_con.fetchrow("SELECT * FROM allslugs WHERE slugid = $1",slug_id)
+        statdata = allslugs[f'{stat}']
+        return statdata
+
     async def battle_algo(self, Attack, Defense, Base, IV, EV, Rank, Level):
         Base_Bonus = int((2 * Base + IV + (0.25 * EV)) * (1 / 2))
         Rank_Bonus = int((Base_Bonus * Rank * 0.01) + Rank / 2)
@@ -191,35 +196,53 @@ class Advanced_Battle_Modes(commands.Cog):
                         opp_shield = 0
                 else:
                     opp_health -= slug_ability_damage
-                slug_total_damage = slug_total_damage - int(slug_ability_damage - slug_ability_damage/3)
                 # endregion Flash Fire
-
-        elif slug_name == 'rammstone':
-            if slug_ability_no == 2:
-                # region Battleup
-                slug_total_damage = slug_total_damage + slug_ability_damage
-                # endregion Battleup
-
         else:
             pass
         return opp_shield, opp_health, slug_total_damage
 
     async def ability_before_battle(self, slug_data):
-        return slug_data
+        for i in range(1,4+1):
+            slug_name = slug_data[f'slug{i}_name']
+            slug_ability_no = slug_data[f'slug{i}_ability_no']
 
-    async def ability_after_attack(self, slug_data, slug_name, slug_ability_no, ch):
-        current_damage = slug_data[f'slug{ch}_base_attack']
-        if slug_name == "rammstone":
-            if slug_ability_no == 2:
-                current_damage = current_damage + current_damage*(10/100)
+            slug_base_attack = slug_data[f'slug{i}_base_attack']
 
+            if slug_name == 'infurnus':
+                if slug_ability_no == 2:
+                    slug_ability_damage = 80
+                    slug_base_attack -= int(slug_ability_damage - slug_ability_damage / 3)
+                    slug_data[f'slug{i}_base_attack'] = slug_base_attack
+
+            elif slug_name == 'rammstone':
+                if slug_ability_no == 2:
+                    slug_base_attack -= 20
+                    slug_data[f'slug{i}_base_attack'] = slug_base_attack
             else:
                 pass
+        return slug_data
+
+    async def ability_after_attack(self, slug_data, ch, opp_slugdata, och, slug_name, slug_ability_no, action_str):
+        current_damage = slug_data[f'slug{ch}_base_attack']
+        if slug_name == "rammstone":
+            # region Battle Up
+            if slug_ability_no == 2:
+                current_damage = current_damage + current_damage*(10/100)
+                slug_data[f'slug{ch}_base_attack'] = int(current_damage)
+                action_str += "Rammstone's **Battleup** increased the slug's damage!\n"
+            # endregion
+
+        elif slug_name == 'arachnet':
+            if slug_ability_no == 2:
+                # region Flashnet
+                opp_slugdata[f'slug{och}_base_speed'] -= int((opp_slugdata[f'slug{och}_base_speed'])*(10/100))
+                action_str += "Arachnet's **Flashnet** decreased the opposing slug's speedn\n"
+                # endregion
+
         else:
             pass
         # Changes
-        slug_data[f'slug{ch}_base_attack'] = int(current_damage)
-        return slug_data
+        return slug_data, opp_slugdata, action_str
     # endregion
 
     async def battle(self, ctx, user_id, opp_char, opp_slug1, opp_slug2, opp_slug3, opp_slug4):
@@ -262,10 +285,25 @@ class Advanced_Battle_Modes(commands.Cog):
             'slug3_name': slug3_name,
             'slug4_name': slug4_name,
 
-            'slug1_base_attack': await self.slugdata_specific(slug1_name,'attack'),
-            'slug2_base_attack': await self.slugdata_specific(slug2_name,'attack'),
-            'slug3_base_attack': await self.slugdata_specific(slug3_name,'attack'),
-            'slug4_base_attack': await self.slugdata_specific(slug1_name,'attack'),
+            'slug1_base_health': await self.slugdata_specific(slug1_name, 'health'),
+            'slug2_base_health': await self.slugdata_specific(slug2_name, 'health'),
+            'slug3_base_health': await self.slugdata_specific(slug3_name, 'health'),
+            'slug4_base_health': await self.slugdata_specific(slug4_name, 'health'),
+
+            'slug1_base_attack': await self.slugdata_specific(slug1_name, 'attack'),
+            'slug2_base_attack': await self.slugdata_specific(slug2_name, 'attack'),
+            'slug3_base_attack': await self.slugdata_specific(slug3_name, 'attack'),
+            'slug4_base_attack': await self.slugdata_specific(slug4_name, 'attack'),
+
+            'slug1_base_speed': await self.slugdata_specific(slug1_name, 'speed'),
+            'slug2_base_speed': await self.slugdata_specific(slug2_name, 'speed'),
+            'slug3_base_speed': await self.slugdata_specific(slug3_name, 'speed'),
+            'slug4_base_speed': await self.slugdata_specific(slug4_name, 'speed'),
+
+            'slug1_ability_no': await self.slugdata_fromdb(slug1_id, 'abilityno'),
+            'slug2_ability_no': await self.slugdata_fromdb(slug2_id, 'abilityno'),
+            'slug3_ability_no': await self.slugdata_fromdb(slug3_id, 'abilityno'),
+            'slug4_ability_no': await self.slugdata_fromdb(slug4_id, 'abilityno'),
         }
         # region Opponent : Character Details
         opp_name = opp_char
@@ -287,6 +325,32 @@ class Advanced_Battle_Modes(commands.Cog):
         opp_slug3_health = await self.slugdata_specific(opp_slug3, 'health')
         opp_slug4_health = await self.slugdata_specific(opp_slug4, 'health')
         # endregion
+        opp_slugdata = {
+            'slug1_name': opp_slug1,
+            'slug2_name': opp_slug2,
+            'slug3_name': opp_slug3,
+            'slug4_name': opp_slug4,
+
+            'slug1_base_health': await self.slugdata_specific(opp_slug1, 'health'),
+            'slug2_base_health': await self.slugdata_specific(opp_slug2, 'health'),
+            'slug3_base_health': await self.slugdata_specific(opp_slug3, 'health'),
+            'slug4_base_health': await self.slugdata_specific(opp_slug4, 'health'),
+
+            'slug1_base_attack': await self.slugdata_specific(opp_slug1, 'attack'),
+            'slug2_base_attack': await self.slugdata_specific(opp_slug2, 'attack'),
+            'slug3_base_attack': await self.slugdata_specific(opp_slug3, 'attack'),
+            'slug4_base_attack': await self.slugdata_specific(opp_slug4, 'attack'),
+
+            'slug1_base_speed': await self.slugdata_specific(opp_slug1, 'speed'),
+            'slug2_base_speed': await self.slugdata_specific(opp_slug2, 'speed'),
+            'slug3_base_speed': await self.slugdata_specific(opp_slug3, 'speed'),
+            'slug4_base_speed': await self.slugdata_specific(opp_slug4, 'speed'),
+
+            'slug1_ability_no': random.randint(1,2),  # await self.slugdata_fromdb(slug1_id, 'abilityno'),
+            'slug2_ability_no': random.randint(1,2),  # await self.slugdata_fromdb(slug2_id, 'abilityno'),
+            'slug3_ability_no': random.randint(1,2),  # await self.slugdata_fromdb(slug3_id, 'abilityno'),
+            'slug4_ability_no': random.randint(1,2),  # await self.slugdata_fromdb(slug4_id, 'abilityno'),
+        }
         # region >>> Shield >>>
         shield = slug1_health + slug2_health + slug3_health + slug4_health
         opp_shield = opp_slug1_health + opp_slug2_health + opp_slug3_health + opp_slug4_health
@@ -296,8 +360,8 @@ class Advanced_Battle_Modes(commands.Cog):
         win = 0
 
         slug_data = await self.ability_before_battle(slug_data)
+        opp_slugdata = await self.ability_before_battle(opp_slugdata)
         while True:
-            # print(slug_data)
             # region Part 1 : Battle Embed
             action_str = ""
             battle_embed = discord.Embed(
@@ -376,13 +440,13 @@ class Advanced_Battle_Modes(commands.Cog):
             slug_level = allslugsdb['level']
             slug_rank = allslugsdb['rank']
 
-            slug_health = slugdata['health']
+            slug_base_health = slugdata['health']
             slug_base_attack = slug_data[f'slug{ch}_base_attack']  # slugdata['attack']
             slug_defense = slugdata['defense']
-            slug_speed = slugdata['speed']
+            slug_base_speed = slug_data[f'slug{ch}_base_speed']
             slug_accuracy = slugdata['accuracy']
 
-            slug_ability_no = allslugsdb['abilityno']
+            slug_ability_no = slug_data[f'slug{ch}_ability_no']  # allslugsdb['abilityno']
 
             abilitydb = await self.bot.pg_con.fetchrow(
                 "SELECT * FROM ability WHERE abilityno = $1 AND slugname = $2", slug_ability_no, slug_name
@@ -397,16 +461,26 @@ class Advanced_Battle_Modes(commands.Cog):
 
             # region Opponent's Choice of Slug
             opp_slug_name = random.choice([opp_slug1,opp_slug2,opp_slug3,opp_slug4])
-            opp_slugdata = await self.bot.pg_con.fetchrow("SELECT * FROM slugdata WHERE slugname = $1", opp_slug_name)
+            och = random.randint(1,4)
+            # och = 4
+            if och == 1:
+                opp_slug_name = opp_slug1
+            elif och == 2:
+                opp_slug_name = opp_slug2
+            elif och == 3:
+                opp_slug_name = opp_slug3
+            else:
+                opp_slug_name = opp_slug4
+            opp_slugdb = await self.bot.pg_con.fetchrow("SELECT * FROM slugdata WHERE slugname = $1", opp_slug_name)
 
             opp_slug_level = random.randint(1,10)
             opp_slug_rank = random.randint(1,50)
 
-            opp_slug_health = opp_slugdata['health']
-            opp_slug_attack = opp_slugdata['attack']
-            opp_slug_defense = opp_slugdata['defense']
-            opp_slug_speed = opp_slugdata['speed']
-            opp_slug_accuracy = opp_slugdata['accuracy']
+            opp_slug_base_health = opp_slugdb['health']
+            opp_slug_attack = opp_slugdata[f'slug{och}_base_attack']  # opp_slugdb['attack']
+            opp_slug_defense = opp_slugdb['defense']
+            opp_slug_speed = opp_slugdata[f'slug{och}_base_speed']
+            opp_slug_accuracy = opp_slugdb['accuracy']
 
             opp_slug_ability_no = 2  # random.randint(1,2)
 
@@ -465,11 +539,12 @@ class Advanced_Battle_Modes(commands.Cog):
                 opp_ability_used = 1
             # endregion of Opponent's Ability
             # endregion
+            # print(opp_slug_speed, slug_base_speed)
             # region Part 6 : Damage Calculations
             ran_accuracy = random.randint(1,120)
             ran_opp_accuracy = random.randint(1,120)
 
-            if opp_slug_speed >= slug_speed:
+            if opp_slug_speed >= slug_base_speed:
                 action_str += f"**{opp_name} used {opp_slug_name}**!\n"
                 char_health, shield, action_str = await self.accuracy_check(
                     ran_opp_accuracy, opp_slug_accuracy, char_health, opp_total_damage, shield,
@@ -492,7 +567,7 @@ class Advanced_Battle_Modes(commands.Cog):
                     win = 1
                     break
                 # endregion
-            else:  # if slug_speed > opp_slug_speed:
+            else:  # if slug_base_speed > opp_slug_speed:
                 action_str += f"**{char_name} used {slug_name}**!\n"
                 opp_health, opp_shield, action_str = await self.accuracy_check(
                     ran_accuracy, slug_accuracy, opp_health, total_damage, opp_shield,
@@ -546,10 +621,11 @@ class Advanced_Battle_Modes(commands.Cog):
                 # endregion
 
             # Action Embed after each command
+            # endregion
+            slug_data, opp_slugdata, action_str = await self.ability_after_attack(slug_data, ch, opp_slugdata, och, slug_name, slug_ability_no, action_str)
+            opp_slugdata, slug_data, action_str = await self.ability_after_attack(opp_slugdata, och, slug_data, ch, opp_slug_name, opp_slug_ability_no, action_str)
             act_embed = discord.Embed(description=f"{action_str}", color=ctx.bot.main)
             await ctx.send(embed=act_embed)
-            # endregion
-            slug_data = await self.ability_after_attack(slug_data, slug_name, slug_ability_no, ch)
         return win
 
     @commands.command(aliases=['adv'])
@@ -573,7 +649,7 @@ class Advanced_Battle_Modes(commands.Cog):
         opp_slug1 = "rammstone"
         opp_slug2 = "infurnus"
         opp_slug3 = "frostcrawler"
-        opp_slug4 = "flaringo"
+        opp_slug4 = "arachnet"
 
         result = await self.battle(ctx, user_id,  opp_char, opp_slug1, opp_slug2, opp_slug3, opp_slug4)
         await ctx.send("The END of Advanced Battle Mode : Strato")
