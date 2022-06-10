@@ -167,6 +167,7 @@ class Slug_Details(commands.Cog):
         defense = slugdata[0]['defense']
         speed = slugdata[0]['speed']
         accuracy = slugdata[0]['accuracy']
+        retrieval = slugdata[0]['retrieval']
 
         type_emoji, embed_color = await self.types(ctx, type)
         rarity_emoji, stars = await self.rarities(ctx, rarity.lower())
@@ -225,7 +226,8 @@ class Slug_Details(commands.Cog):
             name = "\u2800",
             value = f"""
                 **Defense**: {defense}
-                **Accuracy**: {accuracy}                 
+                **Accuracy**: {accuracy}
+                **Retrieval**: {retrieval}
            """,
             inline = True
         )

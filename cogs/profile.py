@@ -247,9 +247,33 @@ class Profile(commands.Cog):
         level = allslugsdb[0]['level']
         rank = allslugsdb[0]['rank']
         exp = allslugsdb[0]['exp']
-        # ability = allslugsdb[0]['abilityno']
+
+        # region Getting the ABILITY
+        abilityno = allslugsdb[0]['abilityno']
+        if abilityno == 1:
+            ability = "Base Ability"
+        else:
+            abilitydb = await self.bot.pg_con.fetchrow(
+                "SELECT * FROM ability WHERE slugname = $1 AND abilityno = $2",
+                slug_name, abilityno
+            )
+            ability = abilitydb['ability']
+        # endregion
+
+        iv_health = allslugsdb[0]['iv_health']
         iv_attack = allslugsdb[0]['iv_attack']
+        iv_defense = allslugsdb[0]['iv_defense']
+        iv_speed = allslugsdb[0]['iv_speed']
+        iv_accuracy = allslugsdb[0]['iv_accuracy']
+        iv_retrieval = allslugsdb[0]['iv_retrieval']
+
+        ev_health = allslugsdb[0]['ev_health']
         ev_attack = allslugsdb[0]['ev_attack']
+        ev_defense = allslugsdb[0]['ev_defense']
+        ev_speed = allslugsdb[0]['ev_speed']
+        ev_accuracy = allslugsdb[0]['ev_accuracy']
+        ev_retrieval = allslugsdb[0]['ev_retrieval']
+
         item = allslugsdb[0]['item']
         if item == '' or item is None:
             item = "None"
@@ -262,9 +286,14 @@ class Profile(commands.Cog):
         slugdata = await self.bot.pg_con.fetch("SELECT * FROM slugdata WHERE slugname = $1", slug_name)
 
         type = slugdata[0]['type']
-        base_attack = slugdata[0]['attack']
-        attack = base_attack
+
+        health = slugdata[0]['health']
+        attack = slugdata[0]['attack']
+        defense = slugdata[0]['defense']
         speed = slugdata[0]['speed']
+        accuracy = slugdata[0]['accuracy']
+        retrieval = slugdata[0]['retrieval']
+
         imgurl = slugdata[0]['protoimgurl']
 
         type_emoji, embed_color = await self.types(ctx, type)
@@ -276,31 +305,56 @@ class Profile(commands.Cog):
         embed.add_field(name="Level", value=f"{level}", inline=True)
         embed.add_field(name="Experience", value=f"Rank {rank} [{exp}]", inline=True)
         # embed.add_field(name = "Type",value=type,inline=True)
+        # embed.add_field(
+        #     name = "Battle Stats :",
+        #     value = "\u200b",
+        #     inline = False
+        # )
         embed.add_field(
-            name="Current Stats :",
+            name="Base",
             value=f"""
+            **Health**: {health}
             **Attack**: {attack}
+            **Defense**: {defense}
             **Speed**: {speed}
+            **Accuracy**: {accuracy}
+            **Retrieval**: {retrieval}
             """,
             inline=True
         )
         embed.add_field(
-            name="IVs & EVs :",
+            name="IVs",
             value=f"""
-            **IV Attack**: {iv_attack}
-            **EV Attack**: {ev_attack}
+            **Health**: {iv_health}
+            **Attack**: {iv_attack}
+            **Defense**: {iv_defense}
+            **Speed**: {iv_speed}
+            **Accuracy**: {iv_accuracy}
+            **Retrieval**: {iv_retrieval}
             """,
-            inline=False
+            inline=True
         )
-        # embed.add_field(
-        #     name="Ability",
-        #     value=f"{ability}",
-        #     inline = False
-        # )
+        embed.add_field(
+            name = "EVs",
+            value = f"""
+            **Health**: {ev_health}
+            **Attack**: {ev_attack}
+            **Defense**: {ev_defense}
+            **Speed**: {ev_speed}
+            **Accuracy**: {ev_accuracy}
+            **Retrieval**: {ev_retrieval}
+            """,
+            inline = True
+        )
         embed.add_field(
             name = "Item",
             value = f"{item}",
-            inline = False
+            inline = True
+        )
+        embed.add_field(
+            name="Ability",
+            value=f"{ability}",
+            inline = True
         )
         embed.set_thumbnail(url=f"{imgurl}")
         embed.set_author(name=f"{slinger}", icon_url=f"{slinger.avatar_url}")
