@@ -460,7 +460,6 @@ class Advanced_Battle_Modes(commands.Cog):
                 slug_ability_damage = 0
 
             # region Opponent's Choice of Slug
-            opp_slug_name = random.choice([opp_slug1,opp_slug2,opp_slug3,opp_slug4])
             och = random.randint(1,4)
             # och = 4
             if och == 1:
@@ -539,7 +538,6 @@ class Advanced_Battle_Modes(commands.Cog):
                 opp_ability_used = 1
             # endregion of Opponent's Ability
             # endregion
-            # print(opp_slug_speed, slug_base_speed)
             # region Part 6 : Damage Calculations
             ran_accuracy = random.randint(1,120)
             ran_opp_accuracy = random.randint(1,120)

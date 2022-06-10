@@ -127,106 +127,230 @@ class Slug_Details(commands.Cog):
         for i in range(0, length):
             slugs_list.append(slugdatadb[i]['slugname'])
 
-        # Autocorrects the slug name using the slug list
-        slug_name = autolist.autocorrect(slug_name,slugs_list)
-
+        # todo : Needs Update
         if slug_name == "all":
             all_embed = discord.Embed(
                 title = "All Slugs",
                 color = ctx.bot.main
             )
-            all_embed = discord.Embed(
+            all_embed.add_field(
                 name = "Slugs List",
                 value = f"""
-                    {slugs_list[0]}    {slugs_list[1]}    {slugs_list[2]}
-                    {slugs_list[3]}    {slugs_list[4]}    {slugs_list[5]}
-                    {slugs_list[6]}    {slugs_list[7]}    {slugs_list[8]}
-                    {slugs_list[9]}    {slugs_list[10]}    {slugs_list[11]}
+                    {slugs_list[0]},   {slugs_list[1]},    {slugs_list[2]}
+                    {slugs_list[3]},    {slugs_list[4]},    {slugs_list[5]}
+                    {slugs_list[6]},    {slugs_list[7]},    {slugs_list[8]}
+                    {slugs_list[9]},    {slugs_list[10]},    {slugs_list[11]}
                 """,
             )
             return await ctx.send(embed=all_embed)
 
+        # Autocorrects the slug name using the slug list
+        slug_name = autolist.autocorrect(slug_name,slugs_list)
+
         # Checks if slug name exists
-        if slug_name in slugs_list:
-            slugdata = await self.bot.pg_con.fetch("SELECT * FROM slugdata WHERE slugname = $1",slug_name)
+        if slug_name not in slugs_list:
+            return await ctx.send(f"No slug named {slug_name} found.")
 
-            slug_emoji = slugdata[0]['slugemoji']
-            typeid = slugdata[0]['slugtypeid']
-            type = slugdata[0]['type']
-            rarity = slugdata[0]['rarity']
-            location = slugdata[0]['location']
-            desc = slugdata[0]['description']
-            ghoul = slugdata[0]['ghoul']
-            protoimgurl = slugdata[0]['protoimgurl']
-            attack = slugdata[0]['attack']
-            speed = slugdata[0]['speed']
+        slugdata = await self.bot.pg_con.fetch("SELECT * FROM slugdata WHERE slugname = $1",slug_name)
 
-            type_emoji, embed_color = await self.types(ctx, type)
-            rarity_emoji, stars = await self.rarities(ctx, rarity.lower())
+        slug_emoji = slugdata[0]['slugemoji']
+        typeid = slugdata[0]['slugtypeid']
+        type = slugdata[0]['type']
+        rarity = slugdata[0]['rarity']
+        location = slugdata[0]['location']
+        desc = slugdata[0]['description']
+        ghoul = slugdata[0]['ghoul']
+        protoimgurl = slugdata[0]['protoimgurl']
 
-            # region Ability Str
-            ability_str = ''
-            ability_countdb = (await self.bot.pg_con.fetchrow(
-                "SELECT COUNT(slugname) FROM ability WHERE slugname = $1",
-                slug_name
-            ))['count']
-            for i in range(0, ability_countdb+1):
-                abilityno = i+1
-                if abilityno == 1:
-                    ability_str += "**Base Ability :**\nDeals the normal base damage to the opposing slug\n"
-                    continue
+        health = slugdata[0]['health']
+        attack = slugdata[0]['attack']
+        defense = slugdata[0]['defense']
+        speed = slugdata[0]['speed']
+        accuracy = slugdata[0]['accuracy']
 
-                abilitydb = await self.bot.pg_con.fetchrow(
-                    "SELECT * FROM ability WHERE slugname = $1 AND abilityno = $2",
-                    slug_name, abilityno
-                )
-                ability_name = abilitydb['ability']
-                ability_desc = abilitydb['desc']
-                ability_rarity = abilitydb['rarity']
-                ability_str += f"**{ability_name} ({ability_rarity}):**\n{ability_desc}\n"
+        type_emoji, embed_color = await self.types(ctx, type)
+        rarity_emoji, stars = await self.rarities(ctx, rarity.lower())
 
-            info_embed = discord.Embed(
-                title = f"{slug_emoji} {slug_name.capitalize()} #{typeid}",
-                description = f"{desc}",
-                color = embed_color
+        # region Ability Str
+        ability_str = ''
+        ability_countdb = (await self.bot.pg_con.fetchrow(
+            "SELECT COUNT(slugname) FROM ability WHERE slugname = $1",
+            slug_name
+        ))['count']
+        for i in range(0, ability_countdb+1):
+            abilityno = i+1
+            if abilityno == 1:
+                ability_str += "**Base Ability :**\nDeals the normal base damage to the opposing slug\n"
+                continue
+
+            abilitydb = await self.bot.pg_con.fetchrow(
+                "SELECT * FROM ability WHERE slugname = $1 AND abilityno = $2",
+                slug_name, abilityno
             )
-            info_embed.add_field(
-                name = "Rarity",
-                value = f"{rarity_emoji} {rarity.capitalize()}",
-                inline=True
+            ability_name = abilitydb['ability']
+            ability_desc = abilitydb['desc']
+            ability_rarity = abilitydb['rarity']
+            ability_str += f"**{ability_name} ({ability_rarity}):**\n{ability_desc}\n"
+
+        info_embed = discord.Embed(
+            title = f"{slug_emoji} {slug_name.capitalize()} #{typeid}",
+            description = f"{desc}",
+            color = embed_color
+        )
+        info_embed.add_field(
+            name = "Rarity",
+            value = f"{rarity_emoji} {rarity.capitalize()}",
+            inline=True
+        )
+        info_embed.add_field(
+            name = "Type",
+            value = f"{type_emoji} {type.capitalize()}",
+            inline=True
+        )
+        info_embed.add_field(
+            name = "Location",
+            value = f"{location}",
+            inline=True
+        )
+        info_embed.add_field(
+            name= "Base Stats",
+            value=f"""
+                **Health**: {health}
+                **Attack**: {attack}
+                **Speed**: {speed}
+            """,
+            inline = True
+        )
+        info_embed.add_field(
+            name = "\u2800",
+            value = f"""
+                **Defense**: {defense}
+                **Accuracy**: {accuracy}                 
+           """,
+            inline = True
+        )
+        info_embed.add_field(
+            name = "Abilities",
+            value = f"{ability_str}",
+            inline = False
+        )
+        info_embed.set_thumbnail(
+            url = f"{protoimgurl}"
+        )
+        info_embed.set_author(name=f"{stars}")
+        info_embed.set_footer(text=f"Ghoul - {ghoul.capitalize()} #{typeid}G")
+        await ctx.send(embed=info_embed)
+
+    async def profiledb(self, user_id):
+        profiledb = await self.bot.pg_con.fetch("SELECT * FROM profile WHERE userid = $1", user_id)
+        if not profiledb:
+            await self.bot.pg_con.execute("INSERT INTO profile(userid, gold, crystal, gem) VALUES ($1, $2, $3, $4)",
+                                          user_id, 0, 0, 0)
+        profiledb = await self.bot.pg_con.fetchrow("SELECT * FROM profile WHERE userid = $1", user_id)
+        return profiledb
+
+    async def shopdb(self, user_id):
+        shopdb = await self.bot.pg_con.fetchrow("SELECT * FROM shop WHERE userid = $1", user_id)
+        if not shopdb:
+            await self.bot.pg_con.execute("INSERT INTO shop(userid) VALUES ($1)",user_id)
+        shopdb = await self.bot.pg_con.fetchrow("SELECT * FROM shop WHERE userid = $1", user_id)
+        return shopdb
+
+    @commands.command(
+        description = "Activates the ability of a slug",
+    )
+    async def activate(self, ctx, ability_no: int, slug_no: int):
+        user_id = int(ctx.message.author.id)
+        profiledb = await self.profiledb(user_id)
+        if slug_no == 1 or slug_no == 2 or slug_no == 3 or slug_no == 4:
+            pass
+        else:
+            return await ctx.send("You have to mention a slug number ranging from 1 to 4")
+
+        if ability_no == 1 or ability_no == 2 or ability_no == 3:
+            pass
+        else:
+            return await ctx.send("You have to mention a ability number 1, 2 or 3 depending on the slug")
+
+        slug_id = profiledb[f'team{slug_no}']
+        if slug_id is None or slug_id == '':
+            return await ctx.send("No slug at that position.")
+
+        allslugsdb = await self.bot.pg_con.fetchrow(
+            "SELECT * FROM allslugs WHERE slugid = $1",
+            slug_id
+        )
+        slug_name = allslugsdb['slugname']
+
+        current_abilityno = int(allslugsdb['abilityno'])
+        if ability_no == current_abilityno:
+            return await ctx.send("That ability is already activated.")
+
+        abilitydb = await self.bot.pg_con.fetchrow(
+            "SELECT * FROM ability WHERE slugname = $1 AND abilityno = $2",
+            slug_name, ability_no
+        )
+
+        if not abilitydb:
+            return await ctx.send(f"No such ability exists for {slug_name}")
+
+        if ability_no == 1:
+            await self.bot.pg_con.execute(
+                "UPDATE allslugs SET abilityno = $1 WHERE slugid = $2",
+                1, slug_id
             )
-            info_embed.add_field(
-                name = "Type",
-                value = f"{type_emoji} {type.capitalize()}",
-                inline=True
+            end_embed = discord.Embed(
+                description=f"Base Ability Activated for {slug_name}",
+                color=ctx.bot.success
             )
-            info_embed.add_field(
-                name = "Location",
-                value = f"{location}",
-                inline=True
+            await ctx.send(embed=end_embed)
+
+        abs = allslugsdb[f'ability{ability_no}']
+        ability_name = abilitydb['ability']
+        print(abs)
+        # return
+        if abs == 1:
+            await self.bot.pg_con.execute(
+                "UPDATE allslugs SET abilityno = $1 WHERE slugid = $2",
+                ability_no, slug_id
             )
-            info_embed.add_field(
-                name= "Base Stats",
-                value=f"""
-                    **Attack**: {attack}
-                    **Speed**: {speed}
-                """,
-                inline=False
+            end_embed = discord.Embed(
+                description = f"{ability_name} Ability Activated for {slug_name}",
+                color = ctx.bot.success
             )
-            info_embed.add_field(
-                name = "Abilities",
-                value = f"{ability_str}",
-                inline = False
+            await ctx.send(embed=end_embed)
+
+        elif abs == 0:
+            ab_rarity = abilitydb['rarity']
+
+            shopdb = await self.shopdb(user_id)
+            keys = shopdb[f'{ab_rarity.lower()}_key']
+
+            if keys < 1:
+                return await ctx.send(f"No {ab_rarity} Keys. You need a {ab_rarity} key to unlock the {ability_name} ability.")
+
+            await self.bot.pg_con.execute(
+                f"UPDATE shop SET {ab_rarity.lower()}_key = $1 WHERE userid = $2",
+                keys - 1, user_id
             )
-            info_embed.set_thumbnail(
-                url = f"{protoimgurl}"
+            await self.bot.pg_con.execute(
+                f"UPDATE allslugs SET ability{ability_no} = $1 WHERE slugid = $2",
+                1, slug_id
             )
-            info_embed.set_author(name=f"{stars}")
-            info_embed.set_footer(text=f"Ghoul - {ghoul.capitalize()} #{typeid}G")
-            await ctx.send(embed=info_embed)
+
+            # activating it
+            await self.bot.pg_con.execute(
+                "UPDATE allslugs SET abilityno = $1 WHERE slugid = $2",
+                ability_no, slug_id
+            )
+            end_embed = discord.Embed(
+                description=f"{ability_name} Ability Activated for {slug_name}",
+                color=ctx.bot.success
+            )
+            await ctx.send(embed=end_embed)
 
         else:
-            await ctx.send(f"No slug named {slug_name} found.")
+            await ctx.send("Processing...")
 
 def setup(bot):
     bot.add_cog(Slug_Details(bot))
