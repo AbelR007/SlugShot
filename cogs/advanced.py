@@ -146,6 +146,10 @@ class Advanced_Battle_Modes(commands.Cog):
 
         return Total_Damage
 
+    async def stat_algo(self, Base, IV, EV, Rank, Level):
+        Base_Bonus = int((2*Base + IV + (0.25 * EV)) * 0.3)
+        return Base_Bonus
+
     async def accuracy_check(self, ran_accuracy, slug_accuracy, char_health, opp_total_damage, shield,
                              action_str, char_name, slug_name):
         if ran_accuracy < slug_accuracy:
@@ -351,6 +355,10 @@ class Advanced_Battle_Modes(commands.Cog):
             'slug3_ability_no': random.randint(1,2),  # await self.slugdata_fromdb(slug3_id, 'abilityno'),
             'slug4_ability_no': random.randint(1,2),  # await self.slugdata_fromdb(slug4_id, 'abilityno'),
         }
+        opp_slug_level = random.randint(1, 5)  # 1 - 10
+        opp_slug_rank = random.randint(1, 25)  # 1 - 50
+        opp_slug_ivattack = random.randint(1, 50)  # 1 - 100
+        opp_slug_evattack = random.randint(1, 100)  # 1 - 100
         # region >>> Shield >>>
         shield = slug1_health + slug2_health + slug3_health + slug4_health
         opp_shield = opp_slug1_health + opp_slug2_health + opp_slug3_health + opp_slug4_health
@@ -446,6 +454,20 @@ class Advanced_Battle_Modes(commands.Cog):
             slug_base_speed = slug_data[f'slug{ch}_base_speed']
             slug_accuracy = slugdata['accuracy']
 
+            slug_ivhealth = allslugsdb['iv_health']
+            slug_ivattack = allslugsdb['iv_attack']
+            slug_ivdefense = allslugsdb['iv_defense']
+            slug_ivspeed = allslugsdb['iv_speed']
+            slug_ivaccuracy = allslugsdb['iv_accuracy']
+            slug_ivretrieval = allslugsdb['iv_retrieval']
+
+            slug_evhealth = allslugsdb['ev_health']
+            slug_evattack = allslugsdb['ev_attack']
+            slug_evdefense = allslugsdb['ev_defense']
+            slug_evspeed = allslugsdb['ev_speed']
+            slug_evaccuracy = allslugsdb['ev_accuracy']
+            slug_evretrieval = allslugsdb['ev_retrieval']
+
             slug_ability_no = slug_data[f'slug{ch}_ability_no']  # allslugsdb['abilityno']
 
             abilitydb = await self.bot.pg_con.fetchrow(
@@ -472,14 +494,12 @@ class Advanced_Battle_Modes(commands.Cog):
                 opp_slug_name = opp_slug4
             opp_slugdb = await self.bot.pg_con.fetchrow("SELECT * FROM slugdata WHERE slugname = $1", opp_slug_name)
 
-            opp_slug_level = random.randint(1,10)
-            opp_slug_rank = random.randint(1,50)
-
             opp_slug_base_health = opp_slugdb['health']
             opp_slug_attack = opp_slugdata[f'slug{och}_base_attack']  # opp_slugdb['attack']
             opp_slug_defense = opp_slugdb['defense']
             opp_slug_speed = opp_slugdata[f'slug{och}_base_speed']
             opp_slug_accuracy = opp_slugdb['accuracy']
+
 
             opp_slug_ability_no = 2  # random.randint(1,2)
 
@@ -496,11 +516,21 @@ class Advanced_Battle_Modes(commands.Cog):
             # endregion Opponent's Details
             # endregion
             # region Part 4 : Battle Calculations
-            total_damage = slug_total_damage = slug_base_attack
-            # total_damage = await self.battle_algo(
-            #     char_attack, opp_defense, slug_base_attack, slug_ivattack, slug_evattack, slug_rank, slug_level
-            # )
-            opp_total_damage = opp_slug_total_damage = opp_slug_attack
+
+            # total_damage = slug_total_damage = slug_base_attack
+            total_damage = await self.battle_algo(
+                char_attack, opp_defense, slug_base_attack, slug_ivattack, slug_evattack, slug_rank, slug_level
+            )
+            total_slug_speed = await self.stat_algo(
+                slug_base_speed, slug_ivspeed, slug_evspeed, slug_rank, slug_level
+            )
+
+            # opp_total_damage  = opp_slug_total_damage = opp_slug_attack
+            opp_total_damage = await self.battle_algo(
+                opp_attack, char_defense, opp_slug_attack, opp_slug_ivattack, opp_slug_evattack, opp_slug_rank, opp_slug_level
+            )
+            # opp_slug_speed = await self.stat_algo
+
             # endregion
             # region Part 5 : Ability Calculations
             ability_msg = ''
@@ -542,7 +572,7 @@ class Advanced_Battle_Modes(commands.Cog):
             ran_accuracy = random.randint(1,120)
             ran_opp_accuracy = random.randint(1,120)
 
-            if opp_slug_speed >= slug_base_speed:
+            if opp_slug_speed >= total_slug_speed:
                 action_str += f"**{opp_name} used {opp_slug_name}**!\n"
                 char_health, shield, action_str = await self.accuracy_check(
                     ran_opp_accuracy, opp_slug_accuracy, char_health, opp_total_damage, shield,
@@ -565,7 +595,7 @@ class Advanced_Battle_Modes(commands.Cog):
                     win = 1
                     break
                 # endregion
-            else:  # if slug_base_speed > opp_slug_speed:
+            else:  # if total_slug_speed > opp_slug_speed:
                 action_str += f"**{char_name} used {slug_name}**!\n"
                 opp_health, opp_shield, action_str = await self.accuracy_check(
                     ran_accuracy, slug_accuracy, opp_health, total_damage, opp_shield,
