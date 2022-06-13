@@ -657,7 +657,7 @@ class Advanced_Battle_Modes(commands.Cog):
         return win
 
     @commands.command(aliases=['adv'])
-    async def advance(self, ctx):
+    async def explore(self, ctx):
         user_id = int(ctx.message.author.id)
         await ctx.send("The BEGINNING of Advanced Battle Mode : Strato")
 

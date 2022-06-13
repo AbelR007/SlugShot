@@ -17,6 +17,12 @@ items_list = {
         [2000, emo.question_mark, "Increases damage of a slug by 10%. Efficient for a high damage dealing slug."],
     'defense boost':
         [2000, emo.question_mark, "Increases defense of a slug by 10%. Efficient for defending high damage slugs."],
+
+    # 'common chest':
+    #     [500, emo.question_mark, "Regular Chest with chances of slug and unique items."],
+    # 'rare chest':
+    #     [1500, emo.question_mark, "Rare Chest with higher chances of slugs"],
+
     # 'common box','rare box','mythical box','legendary box'
 }
 
