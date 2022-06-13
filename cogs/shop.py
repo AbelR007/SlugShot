@@ -85,8 +85,26 @@ class Shop(commands.Cog):
         #endregion
         await ctx.send(embed=embed)
 
-    @commands.command()
-    async def buy(self, ctx, no = 1, *, item):
+    @commands.command(
+        description = "Example:\n`.buy 2 damage enhancer`"
+    )
+    async def buy(self, ctx, *item: str):
+        """Purchase an item from the shop."""
+
+        if len(item) == 0:
+            return await self.error_embed(ctx,f'You need help! `.help buy`')
+
+        no = 1
+        if item[-1].isdigit() or item[0].isdigit():
+            if item[-1].isdigit():
+                item, no = item[:-1], int(item[-1])
+            else:
+                item, no = item[1:], int(item[0])
+            if no <= 0:
+                return await self.error_embed(ctx,f"Nah! Its not gonna work.")
+
+        item = " ".join(item)
+
         user_id = int(ctx.message.author.id)
         profiledb = await self.profiledb(user_id)
         shopdb = await self.shopdb(user_id)
@@ -154,6 +172,12 @@ class Shop(commands.Cog):
             )
             await msg.edit(embed=cancel_embed)
 
+    @buy.error
+    async def buy_error(self, ctx, error):
+        if isinstance(error, commands.BadArgument):
+            return await ctx.send(f"Invalid Usage. Use it as `.buy <no> <item name>`\nFor example,\n`.buy 2 fire slug food`")
+            # return await self.error_embed(ctx, f"Invalid Usage. Use it as `.buy <no> <item name>`\nFor example,\n`.buy 2 fire slug food`")
+
     @commands.command()
     async def sell(self, ctx):
         await ctx.send("Work in Progress.")
@@ -165,7 +189,9 @@ class Shop(commands.Cog):
     #     all_items = list(items_list.keys())
     #     item = autolist.autocorrect(item, all_items)
 
-
+    @commands.command()
+    async def open(self, ctx, chest_type, no: int):
+        await ctx.send("Work in progress.")
 
 def setup(bot):
     bot.add_cog(Shop(bot))
