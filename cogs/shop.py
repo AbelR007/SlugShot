@@ -179,8 +179,22 @@ class Shop(commands.Cog):
             # return await self.error_embed(ctx, f"Invalid Usage. Use it as `.buy <no> <item name>`\nFor example,\n`.buy 2 fire slug food`")
 
     @commands.command()
-    async def sell(self, ctx):
+    async def sell(self, ctx, *item : str):
         await ctx.send("Work in Progress.")
+
+        if len(item) == 0:
+            return await self.error_embed(ctx,f'You need help! `.help buy`')
+
+        no = 1
+        if item[-1].isdigit() or item[0].isdigit():
+            if item[-1].isdigit():
+                item, no = item[:-1], int(item[-1])
+            else:
+                item, no = item[1:], int(item[0])
+            if no <= 0:
+                return await self.error_embed(ctx,f"Nah! Its not gonna work.")
+
+        item = " ".join(item)
     # async def sell(self, ctx, no=1, *, item):
     #     user_id = int(ctx.message.author.id)
     #     profiledb = await self.profiledb(user_id)
