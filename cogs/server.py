@@ -207,5 +207,5 @@ class Server_Settings(commands.Cog):
                 await channel.send("It worked.")
 
 
-def setup(bot):
-    bot.add_cog(Server_Settings(bot))
+async def setup(bot):
+    await bot.add_cog(Server_Settings(bot))

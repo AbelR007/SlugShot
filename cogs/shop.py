@@ -3,8 +3,9 @@ import asyncio
 import autolist
 import discord
 from discord.ext import commands
-from bot import bot as emo
+# from bot import bot as emo
 
+question_mark = "<:question_mark:976450883049111582>"
 items_list = {
     'fire slug food':
         [20,'<:fire_food:979751145343950888>','Slug food for the Fire Type Slugs'],
@@ -14,14 +15,18 @@ items_list = {
     'air slug food': [20,'<:air_food:979751161328439316>','Slug food for the Air Type Slugs'],
 
     'damage enhancer':
-        [2000, emo.question_mark, "Increases damage of a slug by 10%. Efficient for a high damage dealing slug."],
+        [2000, question_mark, "Increases damage of a slug by 10%. Efficient for a high damage dealing slug."],
     'defense boost':
-        [2000, emo.question_mark, "Increases defense of a slug by 10%. Efficient for defending high damage slugs."],
+        [2000, question_mark, "Increases defense of a slug by 10%. Efficient for defending high damage slugs."],
 
-    # 'common chest':
-    #     [500, emo.question_mark, "Regular Chest with chances of slug and unique items."],
-    # 'rare chest':
-    #     [1500, emo.question_mark, "Rare Chest with higher chances of slugs"],
+    'common box':
+        [500, question_mark, "Regular Box with chances of slug and unique items."],
+    'rare box':
+        [1500, question_mark, "Rare Box with higher chances of slugs"],
+    'mythic box:':
+        [3000, question_mark, "Mythic Box with higher chances for unique items than a rare box"],
+    'legendary box':
+        [10000, question_mark, "Legendary Box with guaranteed chance of slug and many other unique items"],
 
     # 'common box','rare box','mythical box','legendary box'
 }
@@ -75,7 +80,7 @@ class Shop(commands.Cog):
             name = name.replace("_"," ")
 
             embed.add_field(
-                name = f"{emoji} {name.capitalize()} {stock}",
+                name = f" {name.capitalize()} {stock}",
                 value = f"""
                     **Cost** : {cost}{ctx.bot.gold}
                     **Description** : {desc}
@@ -179,7 +184,7 @@ class Shop(commands.Cog):
             # return await self.error_embed(ctx, f"Invalid Usage. Use it as `.buy <no> <item name>`\nFor example,\n`.buy 2 fire slug food`")
 
     @commands.command()
-    async def sell(self, ctx, *item : str):
+    async def sell(self, ctx, *item: str):
         await ctx.send("Work in Progress.")
 
         if len(item) == 0:
@@ -204,8 +209,41 @@ class Shop(commands.Cog):
     #     item = autolist.autocorrect(item, all_items)
 
     @commands.command()
-    async def open(self, ctx, chest_type, no: int):
-        await ctx.send("Work in progress.")
+    async def open(self, ctx, *, box_type):
+        user_id = int(ctx.message.author.id)
+        shop = await self.shopdb(user_id)
 
-def setup(bot):
-    bot.add_cog(Shop(bot))
+        list = ['common','rare','mythic','legendary']
+        print(box_type)
+        box_type = autolist.autocorrect(box_type, list)
+        print(box_type)
+
+        if box_type not in list:
+            return await self.error_embed(ctx,"Invalid name. It can be only **Common**, **Rare**, **Mythic** or **Legendary**!")
+
+        boxes_left = shop[f'{box_type}_box']
+        if boxes_left < 1:
+            return await self.error_embed(ctx,"No boxes left. Buy more from the shop!")
+
+        box = box_type + '_box'
+        if box_type == 'common':
+            pass
+            """
+            COMMON :
+            5.9% Chances of Crystals
+            11.2% Chances of a New Slug
+
+            RARE :
+
+            """
+
+        await self.bot.pg_con.execute(
+            "UPDATE shop SET $1 = $2 WHERE userid = $3",
+            box, boxes_left - 1, user_id
+        )
+
+        await ctx.send("Done.",no)
+
+
+async def setup(bot):
+    await bot.add_cog(Shop(bot))

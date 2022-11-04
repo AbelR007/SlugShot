@@ -2,6 +2,7 @@
 .gitignore
 .env
 .version_cogs
+.archive
 #cogs2
 .idea
 img

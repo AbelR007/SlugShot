@@ -8,7 +8,9 @@ import datetime, time
     ping
     botinfo | about
     invite 
+    support
     superping
+    # daily
 """
 
 class General(commands.Cog):
@@ -55,7 +57,9 @@ class General(commands.Cog):
         aliases=['invitebot','botlink'],
     )
     async def invite(self, ctx):
-        embed = discord.Embed(title="Invite Slugshot",description=f"[Click this link](https://discord.com/api/oauth2/authorize?client_id=744238855724466238&permissions=8&scope=bot)",colour=ctx.bot.main)
+        embed = discord.Embed(
+            title="Invite Slugshot",
+            description=f"[As Administrator](https://discord.com/api/oauth2/authorize?client_id=744238855724466238&permissions=8&scope=bot)\n[With Basic Bot Permissions](https://discord.com/api/oauth2/authorize?client_id=744238855724466238&permissions=1256479652928&scope=bot)", colour=ctx.bot.main)
         await ctx.send(embed=embed)
 
     @commands.command(
@@ -111,5 +115,5 @@ class General(commands.Cog):
     #         embed.set_footer(text='Play with other commands available...')
     #         await ctx.send(embed=embed)
 
-def setup(bot):
-    bot.add_cog(General(bot))
+async def setup(bot):
+    await bot.add_cog(General(bot))

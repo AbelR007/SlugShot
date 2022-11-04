@@ -354,5 +354,5 @@ class Slug_Details(commands.Cog):
         else:
             await ctx.send("Processing...")
 
-def setup(bot):
-    bot.add_cog(Slug_Details(bot))
+async def setup(bot):
+    await bot.add_cog(Slug_Details(bot))

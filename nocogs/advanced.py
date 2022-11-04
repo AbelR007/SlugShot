@@ -2,6 +2,59 @@ import discord
 import random
 import asyncio
 from discord.ext import commands, tasks
+from discord.ext.commands.cooldowns import BucketType
+
+_mc = commands.MaxConcurrency(1, per=commands.BucketType.user, wait=False)
+_cd = commands.CooldownMapping.from_cooldown(1, 10, commands.BucketType.user)
+
+
+regions = {
+    "Wild Western Caverns": {
+        "Shane Hideout": ["Kord Zane", "Pronto", "Trixie"],
+        "Wild Spores Cavern": ["Pronto"],
+        "Dark Spores Cavern": ["Pronto","Trixie"],
+        "Herringbone Cavern": ["Pronto"],
+        "Rocklock Cavern": ["Kord Zane"],
+    },
+}
+# slugs = {
+#     "Shane Hideout": {
+#         "common": ['rammstone', 'hop rock'],
+#         "uncommon": ['armashelt', 'arachnet', ],
+#         "legendary": ['infurnus'],
+#     },
+#     "Wild Spores Cavern": {
+#         "common": ['flatulorhinkus'],
+#         "uncommon": ['flaringo'],
+#         "rare": ['bubbaleone'],
+#         "super rare": ['frostcrawler'],
+#         # "mythical": ['thugglet'],
+#     },
+#     "Dark Spores Cavern": {
+#         "common": ['flatulorhinkus'],
+#         "rare": ['speedstinger'],
+#         "super rare": ['grenuke', 'frightgeist'],
+#     },
+#     "Herringbone Cavern": {
+#         "uncommon": ['speedstinger'],
+#         "rare": ['grenuke', 'armashelt'],
+#     },
+#     "Rocklock Cavern": {
+#         "common": ['hop rock'],
+#         "uncommon": ['arachnet', 'rammstone'],
+#         "super rare": ['grenuke'],
+#     }
+# }
+# locations_no = {
+#     "Wild Western Caverns": {
+#         "Shane Hideout": 1,
+#         "Wild Spores Cavern": 2,
+#         "Dark Spores Cavern": 3,
+#         "Herringbone Cavern": 4,
+#         "Rocklock Cavern": 5,
+#     },
+# }
+
 
 class Advanced_Battle_Modes(commands.Cog):
     def __init__(self, bot):
@@ -218,7 +271,7 @@ class Advanced_Battle_Modes(commands.Cog):
             slug_base_attack = slug_data[f'slug{i}_base_attack']
 
             if slug_ability_no == 2:
-                char_health = char_health - (char_health * (5/100))
+                char_health = int(char_health - (char_health * (5/100)))
 
             if slug_name == 'infurnus':
                 if slug_ability_no == 2:
@@ -266,7 +319,7 @@ class Advanced_Battle_Modes(commands.Cog):
         elif slug_name == 'armashelt':
             if slug_ability_no == 2:
                 # region
-                slug_data[f'slug{ch}_accuracy'] += (slug_data[f'slug{ch}_accuracy']*(7/100))
+                slug_data[f'slug{ch}_accuracy'] += int(slug_data[f'slug{ch}_accuracy']*(7/100))
                 # endregion
 
         else:
@@ -361,8 +414,9 @@ class Advanced_Battle_Modes(commands.Cog):
             'slug3_ability_no': await self.slugdata_fromdb(slug3_id, 'abilityno'),
             'slug4_ability_no': await self.slugdata_fromdb(slug4_id, 'abilityno'),
 
-            'char_health': await self.chardb_fromdb(char_name, 'health'),
+            'char_health': await self.chardata_fromdb(char_name, 'health'),
         }
+        # region Stat Updates
         char_health = slug_data['char_health']
         stats = ['health','attack','defense','speed','accuracy','retrieval']
         for i in range(1,4+1):
@@ -383,8 +437,7 @@ class Advanced_Battle_Modes(commands.Cog):
                 rank = slug_data[f'slug{i}_rank']
                 level = slug_data[f'slug{i}_level']
                 slug_data[f'slug{i}_{stat}'] = await self.stat_algo(base_stat, iv_stat, ev_stat, rank, level)
-                print(slug_data[f'slug{i}_{stat}'])
-
+        # endregion
         # region Opponent : Character Details
         opp_name = opp_char
         oppchardb = await self.bot.pg_con.fetchrow("SELECT * FROM chardata WHERE charname = $1", opp_name)
@@ -757,10 +810,17 @@ class Advanced_Battle_Modes(commands.Cog):
             await ctx.send(embed=act_embed)
         return win
 
-    @commands.command(aliases=['exp','x'])
+    # @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
+    @commands.command(
+        description="Explore the caverns, this and beyond!",
+        aliases=['exp', 'x'],
+        max_concurrency=_mc
+    )
+    @commands.cooldown(1, 10, commands.BucketType.user)
     async def explore(self, ctx):
         user_id = int(ctx.message.author.id)
-        # await ctx.send("The BEGINNING of Advanced Battle Mode : Strato")
+        await ctx.send("The BEGINNING of Advanced Battle Mode : Strato")
+        print("Hmm")
 
         # region User Database
         profiledb = await self.profiledb(user_id)
@@ -773,15 +833,156 @@ class Advanced_Battle_Modes(commands.Cog):
             )
             return await ctx.send(embed=start_embed)
 
-        # Opponent Character Details
-        opp_char = "Pronto"
-        opp_slug1 = "rammstone"
-        opp_slug2 = "infurnus"
-        opp_slug3 = "frostcrawler"
-        opp_slug4 = "arachnet"
+        # region Opponent's Character's List
+
+        try:
+            opp_chars = regions[region][location]
+        except KeyError:
+            return await self.error_embed(ctx, "This Cavern is Locked")
+        # endregion
+
+        # region Opponent's Slugs's List
+        opp_char = random.choice(opp_chars)
+        oppchardb = await self.bot.pg_con.fetch("SELECT * FROM chardata WHERE charname = $1", opp_char)
+        opp_slug1 = oppchardb[0]['slug1']
+        opp_slug2 = oppchardb[0]['slug2']
+        opp_slug3 = oppchardb[0]['slug3']
+        opp_slug4 = oppchardb[0]['slug4']
 
         result = await self.battle(ctx, user_id,  opp_char, opp_slug1, opp_slug2, opp_slug3, opp_slug4)
         # await ctx.send("The END of Advanced Battle Mode : Strato")
 
-def setup(bot):
-    bot.add_cog(Advanced_Battle_Modes(bot))
+        # region After Battle,
+        chance = random.randint(1, 100)
+        # print(chance)
+        if result == 1:
+            if chance > 80:
+                pass
+            else:
+                return
+        else:
+            return
+
+        # region Chance Embed
+        chance_embed = discord.Embed(
+            title="New Slug Found",
+            description=f"""
+                A slug {ctx.bot.question_mark} wants to join your team!
+                Do you want to catch it or not?
+
+                ***Reply fast with reactions!***
+            """,
+            color=ctx.bot.main
+        )
+        chance_embed.set_thumbnail(
+            url="https://cdn.discordapp.com/attachments/716625655692787801/976451381655379998/Unclassified.webp")
+        cembed = msg = await ctx.send(embed=chance_embed)
+        # endregion
+
+        # region Timeout Embed
+        timeout_embed = discord.Embed(
+            title="Ah! You missed it!",
+            color=ctx.bot.invis
+        )
+        # endregion
+
+        # region Taking Input via reactions
+        tick = "\U00002611"
+        cross = "\U0000274e"
+        await cembed.add_reaction(tick)
+        await cembed.add_reaction(cross)
+
+        def check(reaction, user):
+            return user == ctx.message.author and (
+                    str(reaction.emoji) == tick or
+                    str(reaction.emoji) == cross
+            )
+
+        try:
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=20.0, check=check)
+        except asyncio.TimeoutError:
+            return await msg.edit(embed=timeout_embed)
+        else:
+            pass
+        # endregion
+
+        if str(reaction.emoji) == tick:
+            rarities = list(slugs[location].keys())
+            percent = await self.rarity_percent(rarities)
+            # print(percent)
+
+            slug_rarity = np.random.choice(a=rarities, p=percent)
+            slug_name = random.choice(slugs[location][slug_rarity])
+
+            # region Database Changes
+            team1 = profiledb[0]['team1']
+            team2 = profiledb[0]['team2']
+            team3 = profiledb[0]['team3']
+            team4 = profiledb[0]['team4']
+
+            slugdatadb = await self.bot.pg_con.fetch("SELECT * FROM slugdata WHERE slugname = $1", str(slug_name))
+
+            img = slugdatadb[0]['protoimgurl']
+            slugtypeid = slugdatadb[0]['slugtypeid']
+            total_slugs = profiledb[0]['total_slugs'] + 1
+            slugid = await self.get_slugid(user_id, slugtypeid, total_slugs)
+
+            iv_attack = random.randint(70, 100)
+            con_pos = None
+            container_pos = None
+            if team1 is None:
+                team_pos = 1
+                await self.bot.pg_con.execute("UPDATE profile SET team1 = $1 WHERE userid = $2", slugid, user_id)
+            elif team2 is None:
+                team_pos = 2
+                await self.bot.pg_con.execute("UPDATE profile SET team2 = $1 WHERE userid = $2", slugid, user_id)
+            elif team3 is None:
+                team_pos = 3
+                await self.bot.pg_con.execute("UPDATE profile SET team3 = $1 WHERE userid = $2", slugid, user_id)
+            elif team4 is None:
+                team_pos = 4
+                await self.bot.pg_con.execute("UPDATE profile SET team4 = $1 WHERE userid = $2", slugid, user_id)
+            else:
+                team_pos = 0
+
+                con_pos = 0
+                for i in range(1, 2):  # container
+                    for j in range(len(data_list)):  # inside a container
+                        container_pos = str(i) + '-' + str(data_list[j])
+                        containerdb = await self.bot.pg_con.fetch(
+                            "SELECT * FROM allslugs WHERE container_position = $1 and userid = $2",
+                            container_pos, user_id)
+                        try:
+                            new_slugid = containerdb[0]['slugid']
+                        except IndexError:
+                            con_pos = container_pos
+                            break
+                        else:
+                            pass
+                    if con_pos != 0:
+                        break
+
+            await self.bot.pg_con.execute(
+                "INSERT INTO allslugs (slugid, slugtypeid, userid, slugname, iv_attack, team_position, container_position) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+                str(slugid), str(slugtypeid), int(user_id), str(slug_name), int(iv_attack), str(team_pos),
+                str(container_pos)
+            )
+            await self.bot.pg_con.execute(
+                "UPDATE profile SET total_slugs = $1 WHERE userid = $2", total_slugs, user_id
+            )
+            # endregion
+            changes_embed = discord.Embed(
+                title="Congrats! New Slug Caught",
+                description=f"{slug_name} added to your team!",
+                color=ctx.bot.main
+            )
+            changes_embed.set_thumbnail(url=img)
+            await cembed.edit(embed=changes_embed)
+
+        if str(reaction.emoji) == cross:
+            await cembed.edit("You scared away that slug!")
+        # End of EXPLORE
+
+
+async def setup(bot):
+    await bot.add_cog(Advanced_Battle_Modes(bot))

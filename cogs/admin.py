@@ -2,7 +2,8 @@ import discord
 from discord.ext import commands
 import random
 
-class Admin_Options(commands.Cog,command_attrs=dict(hidden=True)):
+# class Admin_Options(commands.Cog,command_attrs=dict(hidden=True)):
+class Admin_Options(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -48,8 +49,8 @@ class Admin_Options(commands.Cog,command_attrs=dict(hidden=True)):
         await self.bot.pg_con.execute(f"{cmd}")
         await ctx.send("Done.")
 
-    @commands.command(hidden=True)
-    @commands.is_owner()
+    @commands.command()
+    # @commands.is_owner()
     async def dbfetch(self, ctx, *, cmd):
         if int(ctx.message.author.id) != 636181565621141505:
             return await ctx.send("You are not worthy enough to use this command!")
@@ -94,5 +95,5 @@ class Admin_Options(commands.Cog,command_attrs=dict(hidden=True)):
 
         await ctx.send(f"New Stats Generated for {done} slugs.")
 
-def setup(bot):
-    bot.add_cog(Admin_Options(bot))
+async def setup(bot):
+    await bot.add_cog(Admin_Options(bot))

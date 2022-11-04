@@ -7,11 +7,14 @@ from discord.ext.menus import button, First, Last
 # Other Modules
 import os
 import asyncpg
+import asyncio
 # Loading Dot envs
 from dotenv import load_dotenv
 load_dotenv()
 # =================================================================
 # Database Connection
+
+
 async def create_db_pool():  # Connecting with Database
     bot.pg_con = await asyncpg.create_pool(
         database=os.getenv('database_name'),
@@ -21,6 +24,8 @@ async def create_db_pool():  # Connecting with Database
 # =================================================================
 # Prefix
 default_prefix = "."
+
+
 async def custom_prefix(bot, message):  # Custom Prefix
     if message.guild is None:
         return commands.when_mentioned_or(default_prefix)(bot, message)
@@ -35,170 +40,39 @@ async def custom_prefix(bot, message):  # Custom Prefix
             return commands.when_mentioned_or(current_prefix)(bot, message)
 # =================================================================
 # Bot cursor
-bot = commands.Bot(
-    command_prefix=custom_prefix,
-    intents=discord.Intents.all(),
-    status=discord.Status.dnd
-)
-# bot.remove_command('help')
+intents = discord.Intents.default()
+intents.message_content = True
+intents.members = True
+class SlugShotBot(commands.Bot):
+    def __init__(self):
+        super().__init__(
+            command_prefix=custom_prefix,
+            intents=intents,
+            status=discord.Status.dnd
+        )
 
-# =================================================================
-# Running the Bot script
-@bot.event
-async def on_ready():
-    print("Bot is running...")
-    # await bot.pg_con.execute(
-    #     """
-    #     CREATE TABLE IF NOT EXISTS profile(
-    #         userid bigint NOT NULL,
-    #         gold bigint DEFAULT 0,
-    #         crystal integer DEFAULT 0,
-    #         gem integer DEFAULT 0,
-    #         total_slugs integer DEFAULT 0,
-    #         character varchar,
-    #         location varchar DEFAULT 'Shane Hideout',
-    #         region varchar DEFAULT 'Western Caverns',
-    #         team1 varchar,
-    #         team2 varchar,
-    #         team3 varchar,
-    #         team4 varchar,
-    #         team5 varchar,
-    #         team6 varchar,
-    #         start integer DEFAULT 0,
-    #         PRIMARY KEY (userid)
-    #     )
-    #     """
-    # )
-    # await bot.pg_con.execute(
-    #     """
-    #     CREATE TABLE IF NOT EXISTS server(
-    #         serverid bigint NOT NULL,
-    #         prefix varchar NOT NULL DEFAULT '.',
-    #         channel1 bigint,
-    #         channel2 bigint,
-    #         channel3 bigint,
-    #         channel4 bigint,
-    #         channel5 bigint,
-    #         channel6 bigint,
-    #         PRIMARY KEY (serverid)
-    #     )
-    #     """
-    # )
-    # await bot.pg_con.execute(
-    #     """
-    #     CREATE TABLE IF NOT EXISTS allslugs(
-    #         slugid varchar NOT NULL,
-    #         slugtypeid varchar NOT NULL,
-    #         userid bigint NOT NULL,
-    #         slugname varchar,
-    #         nickname varchar,
-    #         level integer DEFAULT 1,
-    #         rank integer DEFAULT 0,
-    #         exp integer DEFAULT 0,
-    #         skill integer,
-    #
-    #         iv_health integer DEFAULT 0,
-    #         iv_attack integer DEFAULT 0,
-    #         iv_defense integer DEFAULT 0,
-    #         iv_speed integer DEFAULT 0,
-    #         iv_attackspeed integer DEFAULT 0,
-    #
-    #         team_position varchar,
-    #         PRIMARY KEY (slugid)
-    #     )
-    #     """
-    # )
-    # await bot.pg_con.execute(
-    #     """
-    #     CREATE TABLE IF NOT EXISTS slugdata(
-    #         slugtypeid varchar NOT NULL,
-    #         slugname varchar NOT NULL,
-    #         type varchar,
-    #         rarity varchar,
-    #         description text,
-    #         location varchar,
-    #         ghoul varchar,
-    #         imgurl text,
-    #         description text,
-    #         slugemoji varchar,
-    #
-    #         health integer DEFAULT 0,
-    #         attack integer DEFAULT 0,
-    #         defense integer DEFAULT 0,
-    #         speed integer DEFAULT 0,
-    #         attackspeed integer DEFAULT 0,
-    #         timetaken integer,
-    #         PRIMARY KEY (slugtypeid)
-    #     )
-    #     """
-    # )
-    # await bot.pg_con.execute(
-    #     """
-    #     CREATE TABLE IF NOT EXISTS allchars(
-    #         charid varchar NOT NULL,
-    #         chartypeid integer NOT NULL,
-    #         userid bigint NOT NULL,
-    #         charname varchar,
-    #         nickname varchar,
-    #         level integer DEFAULT 1,
-    #         rank integer DEFAULT 0,
-    #         exp integer DEFAULT 0,
-    #         skill integer,
-    #
-    #         sp_health integer DEFAULT 0,
-    #         sp_attack integer DEFAULT 0,
-    #         sp_defense integer DEFAULT 0,
-    #         sp_speed integer DEFAULT 0,
-    #         sp_attackspeed integer DEFAULT 0,
-    #
-    #         char_position varchar,
-    #         PRIMARY KEY (charid)
-    #     )
-    #     """
-    # )
-    #
-    # await bot.pg_con.execute(
-    #     """
-    #     CREATE TABLE IF NOT EXISTS chardata(
-    #         chartypeid varchar NOT NULL,
-    #         charname varchar NOT NULL,
-    #         type varchar,
-    #         rarity varchar,
-    #         description text,
-    #         location varchar,
-    #         ghoul varchar,
-    #         imgurl text,
-    #         emoji varchar,
-    #
-    #         health integer DEFAULT 0,
-    #         attack integer DEFAULT 0,
-    #         defense integer DEFAULT 0,
-    #         speed integer DEFAULT 0,
-    #         attackspeed integer DEFAULT 0,
-    #
-    #         PRIMARY KEY (chartypeid)
-    #     )
-    #     """
-    # )
-    # await bot.pg_con.execute(
-    #     """
-    #     CREATE TABLE IF NOT EXISTS ability(
-    #         ability varchar NOT NULL,
-    #         abilityid integer NOT NULL DEFAULT 1,
-    #         slugname varchar NOT NULL,
-    #         attack varchar DEFAULT 0,
-    #
-    #         PRIMARY KEY (ability, abilityid)
-    #     )
-    #     """
-    # )
-    print("Databases Created & Directed.")
+    async def setup_hook(self):
+        for filename in os.listdir("./super_cogs"):
+            if filename == "consts.py":
+                continue
+            if filename.endswith(".py"):
+                await self.load_extension(f"super_cogs.{filename[:-3]}")
+
+    async def on_ready(self):
+        print(f"Logged in as {self.user.name}#{self.user.discriminator}")
+        await self.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="you"))
+        await self.setup_hook()
+
+bot = SlugShotBot()
+# bot.remove_command('help')
 # =================================================================
 # Colour Schemes
 bot.main = discord.Colour.from_rgb(255, 133, 51)
 bot.success = discord.Colour.green()
-bot.error = discord.Colour.red()  # discord.Color.from_rgb(48,49,54)  # discord.Colour.orange()
-bot.invis = discord.Color.from_rgb(48,49,54)  # "0x2F3136"
+bot.green = discord.Colour.green()
+# discord.Color.from_rgb(48,49,54)  # discord.Colour.orange()
+bot.error = discord.Colour.red()
+bot.invis = discord.Color.from_rgb(48, 49, 54)  # "0x2F3136"
 # Default Emojis
 bot.coins = bot.gold = "<:gold:975692828116148265>"  # "\U0001fa99"
 bot.crystal = "<:crystal:975692828430725120>"
@@ -207,7 +81,7 @@ bot.gem = "<:gems:975692827910610984>"
 bot.arrow = '<a:arrow:853303138799190046>'
 bot.slugshot = '<:SlugShot:853303301637144596>'
 bot.mark = '<:questionmark:853303949540327425>'
-bot.tree = '<:tree:974961679148417045>'
+bot.branch = '<:tree:974961679148417045>'
 bot.question_mark = "<:question_mark:976450883049111582>"
 # Color schemes for Embeds
 bot.cfire = discord.Colour.from_rgb(255, 102, 51)
@@ -244,95 +118,103 @@ bot.super_rare = '<:SuperRare:846998732880740412>'
 bot.mythical = '<:Mythical:846998734591361064>'
 bot.legendary = '<:Legendary:846998735049195550>'
 
+# region Help Commands
 # ===============================================================================
-class MyHelp(commands.MinimalHelpCommand):
-    def get_command_signature(self, command):
-        return '%s%s %s' % (self.clean_prefix, command.qualified_name, command.signature)
+# class MyHelp(commands.MinimalHelpCommand):
+#     def get_command_signature(self, command):
+#         return '%s%s %s' % (self.clean_prefix, command.qualified_name, command.signature)
 
-    # colour_id =
-    async def send_bot_help(self, mapping):
-        if self.context.author.id != 636181565621141505:
-            return await self.get_destination().send("Use `.menu` command to get a list of helpful commands")
-        embed = discord.Embed(title="SlugShot", description="Use the .menu for a better understanding", colour=bot.main)
-        for cog, commands in mapping.items():
-            filtered = await self.filter_commands(commands, sort=True)
-            command_signatures = [
-                self.get_command_signature(c) for c in commands
-            ]
-            # print(command_signatures)
-            if command_signatures:
-                cog_name = getattr(cog, "qualified_name", "No Category")
-                if cog_name == "No Category":
-                    continue
-                embed.add_field(name=cog_name,
-                                value="{}".format(str(command_signatures).strip('[]').replace('\'', '`').replace(',',' ')),
-                                inline = False)
-                # print(command_signatures)
+#     # colour_id =
+#     async def send_bot_help(self, mapping):
+#         if self.context.author.id != 636181565621141505:
+#             return await self.get_destination().send("Use `.menu` command to get a list of helpful commands")
+#         embed = discord.Embed(
+#             title="SlugShot", description="Use the .menu for a better understanding", colour=bot.main)
+#         for cog, commands in mapping.items():
+#             filtered = await self.filter_commands(commands, sort=True)
+#             command_signatures = [
+#                 self.get_command_signature(c) for c in commands
+#             ]
+#             # print(command_signatures)
+#             if command_signatures:
+#                 cog_name = getattr(cog, "qualified_name", "No Category")
+#                 if cog_name == "No Category":
+#                     continue
+#                 embed.add_field(name=cog_name,
+#                                 value="{}".format(str(command_signatures).strip(
+#                                     '[]').replace('\'', '`').replace(',', ' ')),
+#                                 inline=False)
+#                 # print(command_signatures)
 
-        channel = self.get_destination()
-        embed.set_footer(text="< > Required  |  [ ] Optional ")
-        await channel.send(embed=embed)
-        dmembed = discord.Embed(
-            title = "Welcome to SlugShot Arena!",
-            color = bot.main
-        )
-        dmembed.add_field(
-            name = "i) Easy to use",
-            value = "Simple, yet unique! That's how we designed SlugShot!",
-            inline=False
-        )
-        dmembed.add_field(
-            name = "ii) Level up by Chatting or Battling",
-            value = "Slugs gain experience from duels and Characters gain experience from chatting",
-            inline = False
-        )
-        dmembed.add_field(
-            name = "iii) Explore",
-            value = "Explore unknown locations and catch new slugs and improve your arsenal!",
-            inline = False
-        )
-        dmembed.add_field(
-            name = "iv) New Slugs",
-            value = "Slugs are everything in SlugShot. That's why, we are constantly trying to add new features for complexity, yet simple for battles.",
-            inline = False
-        )
-        dmembed.add_field(
-            name = "v) Constantly updating",
-            value = "Unlike other bots, SlugShot is constantly updating with new slugs, new locations and new features",
-            inline = False
-        )
-        dmembed.add_field(
-            name = "Join the Official SlugShot Server :  https://discord.gg/YjaAw44fj5",
-            value = "We are one active interactive community! If you are in need of help or support, this is the one place you need to be!",
-            inline = False
-        )
-        dmembed.set_author(name="SlugShot",icon_url=self.context.bot.user.avatar_url)
-        dmembed.set_footer(text="By AbelR#4070 | SlugShot Developer")
-        await self.context.author.send(embed=dmembed)
+#         channel = self.get_destination()
+#         embed.set_footer(text="< > Required  |  [ ] Optional ")
+#         await channel.send(embed=embed)
+#         dmembed = discord.Embed(
+#             title="Welcome to SlugShot Arena!",
+#             color=bot.main
+#         )
+#         dmembed.add_field(
+#             name="i) Easy to use",
+#             value="Simple, yet unique! That's how we designed SlugShot!",
+#             inline=False
+#         )
+#         dmembed.add_field(
+#             name="ii) Level up by Chatting or Battling",
+#             value="Slugs gain experience from duels and Characters gain experience from chatting",
+#             inline=False
+#         )
+#         dmembed.add_field(
+#             name="iii) Explore",
+#             value="Explore unknown locations and catch new slugs and improve your arsenal!",
+#             inline=False
+#         )
+#         dmembed.add_field(
+#             name="iv) New Slugs",
+#             value="Slugs are everything in SlugShot. That's why, we are constantly trying to add new features for complexity, yet simple for battles.",
+#             inline=False
+#         )
+#         dmembed.add_field(
+#             name="v) Constantly updating",
+#             value="Unlike other bots, SlugShot is constantly updating with new slugs, new locations and new features",
+#             inline=False
+#         )
+#         dmembed.add_field(
+#             name="Join the Official SlugShot Server :  https://discord.gg/YjaAw44fj5",
+#             value="We are one active interactive community! If you are in need of help or support, this is the one place you need to be!",
+#             inline=False
+#         )
+#         dmembed.set_author(
+#             name="SlugShot", icon_url=self.context.bot.user.avatar_url)
+#         dmembed.set_footer(text="By AbelR#4070 | SlugShot Developer")
+#         await self.context.author.send(embed=dmembed)
 
-    async def send_command_help(self, command):
-        embed = discord.Embed(title=self.get_command_signature(command), color=bot.main)
-        # if command.description is None:
-        #     command.description = 'None'
-        # embed.add_field(name="Description :", value=command.description)
-        desc = command.description
-        if desc:
-            embed.add_field(name="Description :", value=f"{desc}",inline=False)
-        alias = command.aliases
-        if alias:
-            embed.add_field(
-                name="Aliases :", value=", ".join(alias), inline=False)
+#     async def send_command_help(self, command):
+#         embed = discord.Embed(
+#             title=self.get_command_signature(command), color=bot.main)
+#         # if command.description is None:
+#         #     command.description = 'None'
+#         # embed.add_field(name="Description :", value=command.description)
+#         desc = command.description
+#         if desc:
+#             embed.add_field(name="Description :",
+#                             value=f"{desc}", inline=False)
+#         alias = command.aliases
+#         if alias:
+#             embed.add_field(
+#                 name="Aliases :", value=", ".join(alias), inline=False)
 
-        channel = self.get_destination()
-        embed.set_footer(text="< > Required  |  [ ] Optional ")
-        await channel.send(embed=embed)
+#         channel = self.get_destination()
+#         embed.set_footer(text="< > Required  |  [ ] Optional ")
+#         await channel.send(embed=embed)
 
-    async def on_help_command_error(self, ctx, error):
-        if isinstance(error, commands.BadArgument):
-            embed = discord.Embed(title="Error", description=str(error))
-            await ctx.send(embed=embed)
-        else:
-            raise error
+#     async def on_help_command_error(self, ctx, error):
+#         if isinstance(error, commands.BadArgument):
+#             embed = discord.Embed(title="Error", description=str(error))
+#             await ctx.send(embed=embed)
+#         else:
+#             raise error
+
+
 # =================================================================
 dict = {
     0: {
@@ -354,53 +236,56 @@ dict = {
         "duel @user": "Duel against a friend/rival",
     },
     2: {
-        "title" : "Explore",
-        "description" : "To catch new slugs, explore unknown caverns, and be a slugshot master!",
+        "title": "Explore",
+        "description": "To catch new slugs, explore unknown caverns, and be a slugshot master!",
 
         "explore": "Explore the caverns beyond the locations",
         "goto <location>": "To go to a specific location",
         "location": "Displays your current location and region",
+        "slugloc":"Shows all slugs available in all locations",
 
-        "career":"...",
+        "career": "...",
     },
     3: {
-        "title" : "Profile",
-        "description":"Shows your and profile data",
-        "profile [user]":"Shows your profile data",
+        "title": "Profile",
+        "description": "Shows your and profile data",
+        "profile [user]": "Shows your profile data",
         "team [user]": "Shows your battling team",
-        "wallet [user]":"Displays your gold & crystals",
+        "wallet [user]": "Displays your gold & crystals",
         "bag": "...",
     },
     4: {
-        "title" : "Slugs",
-        "description" : "Manage your arsenal and upgrade it to its max!",
-        "info <slug name>" : "Shows the info about the slugs [Base Stats]",
-        "sluginfo <position>" : "Shows the info about your slugs",
-        "arsenal [box number]" : "Displays all your slugs in your arsenal",
+        "title": "Slugs",
+        "description": "Manage your arsenal and upgrade it to its max!",
+        "info <slug name>": "Shows the info about the slugs [Base Stats]",
+        "sluginfo <position>": "Shows the info about your slugs",
+        "arsenal [box number]": "Displays all your slugs in your arsenal",
 
-        "boxswap <position 1> <position 2>":"Swap slugs inside your arsenal(box) itself",
+        "boxswap <position 1> <position 2>": "Swap slugs inside your arsenal(box) itself",
         "swap <team position> <box position>": "Swaps your slug in your team and your arsenal",
-        "release <box position>":"Releases a slug present in your arsenal"
+        "release <box position>": "Releases a slug present in your arsenal"
     },
 
-    5:{
-        "title":"Server Settings",
-        "description":"Displays settings for the server [Only admins can change settings]",
+    5: {
+        "title": "Server Settings",
+        "description": "Displays settings for the server [Only admins can change settings]",
 
         "prefix <new prefix>": "Changes server prefix [By default it is `.`]",
         "settings": "Shows settings for the server",
     },
 
-    6:{
+    6: {
         "title": "Other Commands",
-        "description":"General commands for the SlugShot bot",
+        "description": "General commands for the SlugShot bot",
 
         "support": "Shows the link to the Official SlugShot Support Server",
-        "invite":"Displays the invite link for the bot",
+        "invite": "Displays the invite link for the bot",
         "about": "Displays information about the bot",
-        "ping":"Shows the bot's ping",
+        "ping": "Shows the bot's ping",
     }
 }
+
+
 class MyMenuPages(menus.MenuPages, inherit_buttons=False):
     @button('\U000023ea', position=First(0))
     async def go_to_first_page(self, payload):
@@ -423,6 +308,8 @@ class MyMenuPages(menus.MenuPages, inherit_buttons=False):
     @button('\U000023f9', position=Last(0))
     async def stop_pages(self, payload):
         self.stop()
+
+
 class MySource(menus.ListPageSource):
     # def __init__(self, bot):
     #     self.bot = bot
@@ -438,9 +325,11 @@ class MySource(menus.ListPageSource):
             color=menu.ctx.bot.main
         )
         if no == 0:
-            embed.set_footer(text=f"Page {no} | Requested by {menu.ctx.author}")
+            embed.set_footer(
+                text=f"Page {no} | Requested by {menu.ctx.author}")
         else:
-            embed.set_footer(text=f"Page {no} | Use .help command to know more about the command")
+            embed.set_footer(
+                text=f"Page {no} | Use .help command to know more about the command")
         # embed.set_author(name="SlugShot",icon_url= menu.bot.avatar_url)
 
         list_keys = list(dict[no].keys())
@@ -454,7 +343,7 @@ class MySource(menus.ListPageSource):
                 prefix = "."
             embed.add_field(
                 name=f"{prefix}{list_keys[i]} ",
-                value=f"{menu.ctx.bot.tree}{list_values[i]}",
+                value=f"{menu.ctx.bot.branch}{list_values[i]}",
                 inline=False
             )
         return embed
@@ -464,22 +353,27 @@ class MySource(menus.ListPageSource):
 #         menulist = MySource(data, per_page=1)
 #         menu = MyMenuPages(menulist, delete_message_after=True)
 #         await menu.start(self.context)
+
+
 @bot.command(aliases=['menu'])
 async def guide(ctx):
     data = [1, 2, 3, 4, 5, 6, 7]
     menulist = MySource(data, per_page=1)
     menu = MyMenuPages(menulist, delete_message_after=True)
     await menu.start(ctx)
-#=====================
-bot.help_command = MyHelp()
-# =================================================================
-# Getting all the COGs
-for filename in os.listdir('./cogs'):
-    if filename.endswith('.py'):
-        bot.load_extension(f'cogs.{filename[:-3]}')
+
+# endregion# =================================================================
 # =================================================================
 # Running Database
-bot.loop.run_until_complete(create_db_pool())
+TOKEN = os.getenv('discord_token')
+
+
+async def main():
+    async with bot:
+        # await bot.loop.run_until_complete(create_db_pool())
+        await create_db_pool()
+        await bot.start(TOKEN)
+asyncio.run(main())
 # =================================================================
 # Discord Token Env
-bot.run(os.getenv('discord_token'))
+# bot.run(os.getenv('discord_token'))
