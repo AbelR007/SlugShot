@@ -2,6 +2,8 @@ import discord
 from discord.ext import commands
 import autolist
 import consts as c
+# Slash Command Modules
+from discord import Interaction, app_commands
 
 """ SlugDEX
 - /dex | /slugdex
@@ -75,21 +77,23 @@ def rarities(rarity):
         stars = "NA"
     return remoji, stars
 
-class SlugDex(commands.Cog):
+class SlugDexCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
     
-    @commands.command(
+    @app_commands.command(
+        name = "dex",
         description = "The Great SlugDeX containing everything",
-        aliases = ["slugdex"]
     )
-    async def dex(self, ctx: commands.Context):
+    async def slugdex_command(self, interaction: Interaction):
+
+        server = interaction.guild
 
         total_slugs = len(await self.bot.pg_con.fetch("SELECT * FROM slugdata"))
         total_chars = len(await self.bot.pg_con.fetch("SELECT * FROM chardata"))
         total_items = len(await self.bot.pg_con.fetch("SELECT * FROM shop")) - 1
 
-        prefix = (await self.bot.pg_con.fetchrow("SELECT * FROM server WHERE serverid = $1", ctx.guild.id))["prefix"]
+        prefix = (await self.bot.pg_con.fetchrow("SELECT * FROM server WHERE serverid = $1", server.id))["prefix"]
 
         embed = discord.Embed(
             title = "SlugDeX",
@@ -126,11 +130,17 @@ class SlugDex(commands.Cog):
             value = f"{total_items}",
             inline = True
         )
-        await ctx.send(embed = embed)
+        await interaction.response.send_message(embed = embed)
     
-    @commands.command(
+    @commands.hybrid_command(
         description="Shows the list of all pokemon",
         aliases=["sl"]
+    )
+    @app_commands.rename(
+        slug_name = "slug",
+    )
+    @app_commands.describe(
+        slug_name = "Specify the slug name",
     )
     async def slug(self, ctx, slug_name: str = None):
 
@@ -250,9 +260,15 @@ class SlugDex(commands.Cog):
         
         await ctx.send(embed=info_embed)
     
-    @commands.command(
+    @commands.hybrid_command(
         description = "Shows the description about the characters",
         aliases = ["characters","ch"]
+    )
+    @app_commands.rename(
+        char_name = "character"
+    )
+    @app_commands.describe(
+        char_name = "Specify the character name"
     )
     async def char(self, ctx: commands.Context, *, char_name: str = None):
         
@@ -355,5 +371,5 @@ class SlugDex(commands.Cog):
         await ctx.send(embed = char_embed)
 
 async def setup(bot: commands.Bot):
-    await bot.add_cog(SlugDex(bot))
+    await bot.add_cog(SlugDexCog(bot))
 
