@@ -1,5 +1,8 @@
 import discord
 from discord.ext import commands
+from discord import app_commands
+import consts as c
+from discord import Interaction
 
 """ About SlugShot
 - /about
@@ -8,18 +11,19 @@ from discord.ext import commands
 - /ping
 """
 
-class About(commands.Cog):
+class AboutCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
     
-    @commands.command(
-        description = "Displays information regarding the SlugShot Bot"
-    ) # /about
-    async def about(self, ctx: commands.Context):
+    @app_commands.command(
+        name = "about",
+        description = "Displays information regarding the SlugShot Bot",
+    )
+    async def about_command(self, interaction: Interaction) -> None:
         embed = discord.Embed(
             title="About SlugShot",
             description="SlugShot is a fan-created Slugterra-series based Discord Game Bot that provides entertainment to Slugterra fans and everyone in general. Catch, Trade, and Duel Slugs in an ever-updating Bot.",
-            colour=ctx.bot.main
+            colour = c.main
         )
         embed.add_field(name="Total Servers :", value=f"{len(self.bot.guilds)}",inline=True)
         embed.add_field(name="Total Users :", value=f"{len(self.bot.users)}",inline=True)
@@ -34,12 +38,13 @@ class About(commands.Cog):
             value = f"Media files as in the character skins/ slug images are from Fandom Wikipedia",
             inline=False
         )
-        await ctx.send(embed=embed)
+        await interaction.response.send_message(embed = embed)
     
-    @commands.command(
+    @app_commands.command(
+        name = "invite",
         description = "Provides the invite link for the SlugShot bot"
     ) # /invite
-    async def invite(self, ctx: commands.Context):
+    async def invite_command(self, interaction: Interaction) -> None:
         embed = discord.Embed(
             title = "Invite SlugShot",
             description = f"""
@@ -47,32 +52,33 @@ class About(commands.Cog):
                 [Invite As Administrator](https://discord.com/api/oauth2/authorize?client_id=744238855724466238&permissions=8&scope=bot)
                 [Invite with Basic Permissions](https://discord.com/api/oauth2/authorize?client_id=744238855724466238&permissions=1256479652928&scope=bot)
             """,
-            colour = ctx.bot.green 
+            colour = c.green 
         )
-        await ctx.send(embed = embed)
+        await interaction.response.send_message(embed = embed)
     
-    @commands.command(
+    @app_commands.command(
+        name = "support",
         description = "Provides the support server link for the SlugShot bot"
     ) # /support
-    async def support(self, ctx: commands.Context):
+    async def support_command(self, interaction: Interaction):
         embed = discord.Embed(
             title = "Support SlugShot",
             description= "Join the [Official SlugShot Support Server](https://discord.io/slugshot)\nOR need to suggest anything? use `.support`",
-            colour = ctx.bot.green
+            colour = c.green
         )
-        await ctx.send(embed = embed)
+        await interaction.response.send_message(embed = embed)
     
-    @commands.command(
+    @app_commands.command(
+        name = "ping",
         description = "Shows the latency of the bot",
     ) # /ping
-    async def ping(self, ctx: commands.Context):
+    async def ping_command(self, interaction: Interaction):
+        user = interaction.user
         embed = discord.Embed(
-            title = f"Pong, {ctx.author.name}!",
-            description = f"Bot Latency: {round(self.bot.latency * 1000)} ms",
-            colour = ctx.bot.green
+            description = f"**Pong, {user.mention}!**\nBot Latency: {round(self.bot.latency * 1000)} ms",
+            colour = c.green
         )
-        embed.set_footer(text = f"Requested by {ctx.author}")
-        await ctx.send(embed = embed)
-    
-async def setup(bot):
-    await bot.add_cog(About(bot))
+        await interaction.response.send_message(embed = embed)
+
+async def setup(bot: commands.Bot):
+    await bot.add_cog(AboutCog(bot))

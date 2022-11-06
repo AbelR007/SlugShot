@@ -3,10 +3,13 @@ from discord.ext import commands, tasks
 from discord.ext.commands.errors import CommandNotFound, MissingPermissions
 import consts as c
 import traceback, sys
+from discord import Interaction
+from discord.app_commands import AppCommandError
 
 class Errors(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        # bot.tree.on_error = self.on_app_command_error
     
     async def error_embed(self, ctx, no, content):
         embed = discord.Embed(title=f"Error {no}", description=f"{content}",color=c.error)
@@ -38,7 +41,7 @@ class Errors(commands.Cog):
             return
 
         if isinstance(error, commands.DisabledCommand):
-            await ctx.send(f'{ctx.command} has been disabled.')
+            await self.error_embed(ctx, 109,f'{ctx.command} has been disabled.')
 
         elif isinstance(error, commands.NoPrivateMessage):
             try:
@@ -51,10 +54,29 @@ class Errors(commands.Cog):
                 await ctx.send('I could not find that member. Please try again.')
 
         else:
+            await ctx.send(f"{error}")
             print('Ignoring exception in command {}:'.format(
                 ctx.command), file=sys.stderr)
             traceback.print_exception(
                 type(error), error, error.__traceback__, file=sys.stderr)
+    
+    # @commands.Cog.listener()
+    # async def on_app_command_error(
+    #     self,
+    #     interaction: Interaction,
+    #     error: AppCommandError
+    # ):
+    #     print("This error was handled with option 1 from ?tag treeerrorcog")
+    #     print(error)
+    
+    # # @commands.Cog.listener()
+    # async def cog_app_command_error(
+    #     self,
+    #     interaction: Interaction,
+    #     error: AppCommandError
+    # ):
+    #     print("This error was handled with option 2 from ?tag treeerrorcog")
+    #     print(error)
 
 
 async def setup(bot: commands.Bot):
