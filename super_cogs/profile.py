@@ -1,25 +1,27 @@
 import discord
 from discord.ext import commands
 import consts as c
+# Slash commands
+from discord import app_commands, Interaction
 
 """ Profile Commands
 - /profile
-- /team
-- /stats
-- /wallet
-- /bag
-- /gift
+- /team [user]
+# - /stats
+- /wallet [user]
+# - /bag
+- /share [slinger] [gold]
 """
 
 class Profile(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @commands.command(
+    @app_commands.command(
         description = "Displays information about the slugs in his team, character and current status"
     )
-    async def profile(self, ctx: commands.Context):
-        await ctx.send("Work under construction")
+    async def profile(self, interaction: Interaction):
+        await interaction.response.send_message("Work under construction")
         """
         What all does it show?
 
@@ -33,13 +35,16 @@ class Profile(commands.Cog):
         - Current Location
         """
 
-    @commands.command(
-        description = "Displays your arsenal containing slugs and character information",
-        aliases = ["t"]
+    @app_commands.command(
+        description = "Displays your arsenal containing slugs and character information"
     )
-    async def team(self, ctx: commands.Context, member: discord.Member = None):
+    @app_commands.describe(
+        user = "Check other slinger's arsenal"
+    )
+    async def team(self, interaction: Interaction, user: discord.Member = None):
+        member = user
         if member is None:
-            member = ctx.message.author
+            member = interaction.user
         member_name = member.name
         member_id = member.id
 
@@ -87,7 +92,7 @@ class Profile(commands.Cog):
                 """,
                 inline = True
             )
-        await ctx.send(embed = main_embed)
+        await interaction.response.send_message(embed = main_embed)
 
     async def profiledb(self, user_id):
         profile = await self.bot.pg_con.fetchrow("SELECT * FROM profile WHERE userid = $1", user_id)
@@ -96,13 +101,15 @@ class Profile(commands.Cog):
         profile = await self.bot.pg_con.fetchrow("SELECT * FROM profile WHERE userid = $1", user_id)
         return profile
 
-    @commands.command(
-        description = "Shows the amount of in-game currency you currently have",
-        aliases = ['bal','balance']
+    @app_commands.command(
+        description = "Shows the amount of in-game currency you currently have"
     )
-    async def wallet(self, ctx: commands.Context, user: discord.Member = None):
+    @app_commands.describe(
+        user = "Check other slinger's wallet"
+    )
+    async def wallet(self, interaction: Interaction, user: discord.Member = None):
         if not user:
-            user = ctx.message.author
+            user = interaction.user
         user_id = user.id
 
         db_profile = await self.profiledb(user_id)
@@ -136,14 +143,21 @@ class Profile(commands.Cog):
             name = f"{user.name}'s Wallet",
             icon_url = user.avatar.url
         )
-        await ctx.send(embed = embed)
+        await interaction.response.send_message(embed = embed)
 
-    @commands.command(
-        description = "Shares coins with the other user",
-        aliases = ['gift']
+    @app_commands.command(
+        description = "Shares coins with the other user"
     )# Share
-    async def share(self, ctx: commands.Context, other: discord.Member, amount: int):
-        user = ctx.message.author
+    @app_commands.rename(
+        other = "slinger",
+        amount = "gold"
+    )
+    @app_commands.describe(
+        other = "User to share coins with",
+        amount = "Amount of coins to share"
+    )
+    async def share(self, interaction: Interaction, other: discord.Member, amount: int):
+        user = interaction.user
 
         db_user = await self.profiledb(user.id)
         db_other = await self.profiledb(other.id)
@@ -152,10 +166,10 @@ class Profile(commands.Cog):
         other_gold = db_other['gold']
 
         if amount < 0:
-            return await ctx.send("Negative numbers not allowed")
+            return await interaction.response.send_message("Negative numbers not allowed")
 
         elif amount > user_gold:
-            return await ctx.send("You don't have enough gold to share!")
+            return await interaction.response.send_message("You don't have enough gold to share!")
 
         else:
             pass
@@ -166,7 +180,7 @@ class Profile(commands.Cog):
             title = f"Are you sure you want to share {amount}{c.gold} to {other}?",
             color = c.invis
         )
-        msg = await ctx.send(embed = main_embed,view = view)
+        await interaction.response.send_message(embed = main_embed,view = view)
         await view.wait()
 
         user_ngold = user_gold - amount
@@ -203,7 +217,7 @@ class Profile(commands.Cog):
                 color = c.red
             )
 
-        await msg.edit(embed = embed, view = None)
+        await interaction.edit_original_response(embed = embed, view = None)
 
 class Confirm(discord.ui.View):
     def __init__(self):
