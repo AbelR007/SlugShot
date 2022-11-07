@@ -105,6 +105,7 @@ async def on_app_command_error(
         f"An error occurred while processing this command:\n```{error}```",
         ephemeral=True
     )
+    print(f"An error occurred while processing {interaction.command.name}:\n{error}")
 #endregion
 # =================================================================
 TOKEN = os.getenv('discord_token')

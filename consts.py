@@ -37,6 +37,7 @@ emoji_legendary = '<:Legendary:846998735049195550>'
 main = main_color = discord.Colour.from_rgb(255, 133, 51)
 green = discord.Colour.green()
 red = discord.Colour.red()
+success = discord.Colour.green()
 error = discord.Colour.red()
 invis = 0x2F3136 # discord.Color.from_rgb(48, 49, 54)  # 
 

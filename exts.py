@@ -29,7 +29,7 @@ items = {
         [500, question_mark, "Regular Box with chances of slug and unique items."],
     'rare box':
         [1500, question_mark, "Rare Box with higher chances of slugs"],
-    'mythic box:':
+    'mythic box':
         [3000, question_mark, "Mythic Box with higher chances for unique items than a rare box"],
     'legendary box':
         [10000, question_mark, "Legendary Box with guaranteed chance of slug and many other unique items"],
