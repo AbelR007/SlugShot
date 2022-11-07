@@ -1,15 +1,16 @@
 import discord
 from discord.ext import commands
 import consts as c
-from .slugdex import types
+from .dex import types
 from .profile import Profile
+# Slash Commands
+from discord import Interaction, app_commands
 
 """ Info Commands
 - /sluginfo
 - /info char
 - /upgrade 
 """
-
 
 class SlugInfo(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -22,21 +23,36 @@ class SlugInfo(commands.Cog):
         profile = await self.bot.pg_con.fetchrow("SELECT * FROM profile WHERE userid = $1", user_id)
         return profile
     
-    @commands.command(
-        description = "Gets information about the slug from the team",
-        aliases = ['si']
+    @app_commands.command(
+        description = "Information about SlugShot dynamics",
     )
-    async def sluginfo(self, ctx: commands.Context, pos: int = 1):
-        user = ctx.message.author
+    async def info(self, interaction: Interaction, topic: str = None):
+        embed = discord.Embed(
+            title = "Info Commands",
+            color = c.invis
+        )
+        await interaction.response.send_message(embed=embed)
+    
+    @app_commands.command(
+        description = "Gets information about the slug from the team"
+    )
+    @app_commands.rename(
+        pos = "team-position"
+    )
+    @app_commands.describe(
+        pos = "Specify the slug's position in the team"
+    )
+    async def sluginfo(self, interaction: Interaction, pos: int = 1):
+        user = interaction.user
         
         if pos not in [1,2,3,4]:
-            return await ctx.send("Invalid Slug Position")
+            return await interaction.response.send_message("Invalid Slug Position")
 
         db_profile = await self.profiledb(user.id)
         slug_id = db_profile[f'team{pos}']
 
         if slug_id is None or slug_id == '':
-            return await ctx.send("No slug at that position.")
+            return await interaction.response.send_message("No slug at that position.")
 
         # All Slugs DataBase
         db_allslugs = await self.bot.pg_con.fetchrow("SELECT * FROM allslugs WHERE slugid = $1",slug_id)
@@ -157,7 +173,17 @@ class SlugInfo(commands.Cog):
         )
         embed.set_thumbnail(url=f"{imgurl}")
         # embed.set_footer(text = )
-        await ctx.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
+    
+    @app_commands.command(
+        description = "Gets information about the slug from the team",
+    )
+    async def charinfo(self, interaction: Interaction):
+        
+        embed = discord.Embed(
+            title = "Character Info",
+        )
+        await interaction.response.send_message(embed=embed)
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(SlugInfo(bot))

@@ -2,13 +2,15 @@ import discord
 from discord.ext import commands
 import autolist
 import consts as c
+from exts import items
 # Slash Command Modules
 from discord import Interaction, app_commands
 
-""" SlugDEX
+""" SlugDEX [Slashed]
 - /dex | /slugdex
-- /slug
-- /char
+- /slug [slug]
+- /char [character]
+- /item [item]
 """
 
 def types(type):
@@ -132,9 +134,9 @@ class SlugDexCog(commands.Cog):
         )
         await interaction.response.send_message(embed = embed)
     
-    @commands.hybrid_command(
+    @app_commands.command(
+        name = "slug",
         description="Shows the list of all pokemon",
-        aliases=["sl"]
     )
     @app_commands.rename(
         slug_name = "slug",
@@ -142,7 +144,7 @@ class SlugDexCog(commands.Cog):
     @app_commands.describe(
         slug_name = "Specify the slug name",
     )
-    async def slug(self, ctx, slug_name: str = None):
+    async def slug_command(self, interaction: Interaction, slug_name: str = None):
 
         db_slugdata = await self.bot.pg_con.fetch("SELECT * FROM slugdata")
         length = len(db_slugdata)
@@ -152,7 +154,7 @@ class SlugDexCog(commands.Cog):
             list_embed = discord.Embed(
                 title = "SlugDEX",
                 description = f"List of all {length} pokemon",
-                color = ctx.bot.main
+                color = c.main
             )
             # list1
             list_embed.add_field(
@@ -172,7 +174,7 @@ class SlugDexCog(commands.Cog):
                 value = "this",
                 inline = True
             )
-            await ctx.send(embed = list_embed)
+            await interaction.response.send_message(embed = list_embed)
             return
         
         for i in range(0, length):
@@ -183,7 +185,7 @@ class SlugDexCog(commands.Cog):
 
         # Checks if slug name exists in database
         if slug_name not in slugs_list:
-            return await ctx.send(f"No slug named {slug_name} was found.")
+            return await interaction.response.send_message(f"No slug named {slug_name} was found.")
         
         # Gets slug data
         slugdata = await self.bot.pg_con.fetch("SELECT * FROM slugdata WHERE slugname = $1",slug_name)
@@ -258,11 +260,10 @@ class SlugDexCog(commands.Cog):
         info_embed.set_author(name=f"{stars}")
         info_embed.set_footer(text=f"Ghoul - {ghoul.capitalize()} #{typeid}G")
         
-        await ctx.send(embed=info_embed)
+        await interaction.response.send_message(embed=info_embed)
     
-    @commands.hybrid_command(
+    @app_commands.command(
         description = "Shows the description about the characters",
-        aliases = ["characters","ch"]
     )
     @app_commands.rename(
         char_name = "character"
@@ -270,14 +271,14 @@ class SlugDexCog(commands.Cog):
     @app_commands.describe(
         char_name = "Specify the character name"
     )
-    async def char(self, ctx: commands.Context, *, char_name: str = None):
+    async def char(self, interaction: Interaction, *, char_name: str = None):
         
         db_chardata = await self.bot.pg_con.fetch("SELECT * FROM chardata")
         length = len(db_chardata)
         chars_list = []
 
         if not char_name:
-            return await ctx.send("Specify a character name.")
+            return await interaction.response.send_message("Specify a character name.")
         
         # Char List
         for i in range(0, length):
@@ -287,7 +288,7 @@ class SlugDexCog(commands.Cog):
         char_name = autolist.autocorrect(char_name, chars_list)
 
         if char_name not in chars_list:
-            return await ctx.send(f"No character named {char_name} found")
+            return await interaction.response.send_message(f"No character named {char_name} found")
         
         # Gets char data
         chardata = await self.bot.pg_con.fetchrow("SELECT * FROM chardata WHERE charname = $1",char_name)
@@ -368,7 +369,50 @@ class SlugDexCog(commands.Cog):
         char_embed.set_author(
             name = f"{stars}"
         )
-        await ctx.send(embed = char_embed)
+        await interaction.response.send_message(embed = char_embed)
+    
+    @app_commands.command(
+        description = "Shows the description about the slugs",
+    )
+    @app_commands.rename(
+        item_name = "item"
+    )
+    @app_commands.describe(
+        item_name = "Specify the item name"
+    )
+    async def item(self, interaction: Interaction, item_name: str = None):
+        user = interaction.user
+
+        if not item_name:
+            return await interaction.response.send_message("Specify an item name.")
+        
+        items_list = list(items.keys())
+        item_name = autolist.autocorrect(item_name, items_list)
+
+        if item_name not in items_list:
+            return await interaction.response.send_message(f"No item found named {item_name}.")
+        
+        # Gets item data
+        cost = items[item_name][0]
+        emoji = items[item_name][1]
+        desc = items[item_name][2]
+
+        embed = discord.Embed(
+            title = f"{emoji} {item_name.title()}",
+            description = f"{desc}",
+            color = c.main
+        )
+        embed.add_field(
+            name = "Buy Cost",
+            value = f"{cost}{c.gold}",
+            inline = True
+        )
+        embed.add_field(
+            name = "Sell Cost",
+            value = f"{cost} {c.gold}",
+            inline = True
+        )
+        await interaction.response.send_message(embed=embed)
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(SlugDexCog(bot))

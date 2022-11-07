@@ -22,7 +22,7 @@ class DropDown(discord.ui.Select):
         )
     
     async def callback(self, interaction: discord.Interaction):
-        await interaction.response.edit_message(f'You selected {self.values[0]}')
+        await interaction.response.send_message(f'You selected {self.values[0]}')
 
 class DropDownView(discord.ui.View):
     def __init__(self):
