@@ -165,6 +165,88 @@ class Shop(commands.Cog):
         - Updates the user's money
         - Updates the user's items
         """
+    
+    @app_commands.command(
+        description = "Sell an item from your inventory"
+    )
+    @app_commands.rename(
+        no = "number"
+    )
+    @app_commands.describe(
+        item = "Which item do you want to sell?",
+        no = "How many do you want to sell?"
+    )
+    async def sell(self, interaction: Interaction, item: str, no: int = 1):
+        """Sell an item from your inventory."""
+
+        if no <= 0:
+            return await self.error_embed(interaction, "You can't sell 0 or less items.")
+
+        user_id = int(interaction.user.id)
+        profiledb = await self.profiledb(user_id)
+        shopdb = await self.shopdb(user_id)
+
+        all_items = list(items.keys())
+        item = autolist.autocorrect(item, all_items)
+
+        cost = items[item][0] * no
+        profit = cost - int(cost * (40/100))
+        gold = profiledb['gold']
+
+        if item not in items:
+            return await self.error_embed(interaction, f"No item called {item} exists!")
+
+        item_name_in_db = item.replace(' ', '_')
+
+        if shopdb[item_name_in_db] < no:
+            return await self.error_embed(interaction, f"You don't have {no} {item}!")
+
+        # Embed
+        embed = discord.Embed(
+            title=f"Are you sure you want to sell {no} {item} for {profit}{c.gold}?",
+            color=c.invis
+        )
+        view = Confirm()
+        await interaction.response.send_message(embed=embed, view = view)
+        await view.wait()
+
+        if not view.value: # Timed out
+            final_embed = discord.Embed(
+                title=f"Timeout!",
+                color=c.error
+            )
+        elif view.value: # Confirmed
+
+            gold_left = gold + profit
+            item_name_in_db = item.replace(' ', '_')
+
+            await self.bot.pg_con.execute(
+                "UPDATE profile SET gold = $1 WHERE userid = $2", gold_left, user_id
+            )
+            await self.bot.pg_con.execute(
+                "UPDATE shop SET {item_name_in_db} = $1 WHERE userid = $2",
+                shopdb[item_name_in_db] - no, user_id
+            )
+            final_embed = discord.Embed(
+                title = f"Done! You have sold {no} {item} for {profit}{c.gold}!",
+                color = c.success
+            )
+        
+        else: # Cancelled
+            final_embed = discord.Embed(
+                title="Cancelled!",
+                color=c.error
+            )
+
+        await interaction.edit_original_response(embed=final_embed, view=None)
+        """
+        What all does it do?
+        
+        - Checks if the item exists
+        - Checks if the user has enough items
+        - Updates the user's money
+        - Updates the user's items
+        """
 
 class Confirm(discord.ui.View):
     def __init__(self):
