@@ -17,8 +17,10 @@ items = {
         [20,'<:water_food:979751175463247882>','Slug food for the Water Type Slugs'],
     'energy slug food': 
         [20,'<:energy_food:979751168785940481>','Slug food for the Energy Type Slugs'],
-    'earth slug food': [20,'<:earth_food:979751165648592956>','Slug food for the Earth Type Slugs'],
-    'air slug food': [20,'<:air_food:979751161328439316>','Slug food for the Air Type Slugs'],
+    'earth slug food': 
+        [20,'<:earth_food:979751165648592956>','Slug food for the Earth Type Slugs'],
+    'air slug food': 
+        [20,'<:air_food:979751161328439316>','Slug food for the Air Type Slugs'],
 
     'damage enhancer':
         [2000, question_mark, "Increases damage of a slug by 10%. Efficient for a high damage dealing slug."],

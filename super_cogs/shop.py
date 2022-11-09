@@ -224,7 +224,7 @@ class Shop(commands.Cog):
                 "UPDATE profile SET gold = $1 WHERE userid = $2", gold_left, user_id
             )
             await self.bot.pg_con.execute(
-                "UPDATE shop SET {item_name_in_db} = $1 WHERE userid = $2",
+                f"UPDATE shop SET {item_name_in_db} = $1 WHERE userid = $2",
                 shopdb[item_name_in_db] - no, user_id
             )
             final_embed = discord.Embed(

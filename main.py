@@ -7,6 +7,7 @@ from discord.ext import menus
 from discord.ext.menus import button, First, Last
 # Other Modules
 import os, asyncpg, asyncio
+import sys, traceback
 from typing import Optional, Literal
 # Loading ENV
 from dotenv import load_dotenv
@@ -105,7 +106,10 @@ async def on_app_command_error(
         f"An error occurred while processing this command:\n```{error}```",
         ephemeral=True
     )
-    print(f"An error occurred while processing {interaction.command.name}:\n{error}")
+    # print(f"An error occurred while processing {interaction.command.name}:\n{error}")
+    print(f'Ignoring exception in command {interaction.command.name}', file=sys.stderr)
+    traceback.print_exception(
+        type(error), error, error.__traceback__, file=sys.stderr)
 #endregion
 # =================================================================
 TOKEN = os.getenv('discord_token')

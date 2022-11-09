@@ -176,12 +176,68 @@ class SlugInfo(commands.Cog):
         await interaction.response.send_message(embed=embed)
     
     @app_commands.command(
-        description = "Gets information about the slug from the team",
+        description = "Gets information about the slinger"
     )
     async def charinfo(self, interaction: Interaction):
+        user = interaction.user
+        db_profile = await self.profiledb(user.id)
+        char_id = db_profile['character']
+        if char_id is None or char_id == '':
+            return await interaction.response.send_message("No character selected.")
         
+        db_char = await self.bot.pg_con.fetchrow(
+            "SELECT * FROM allchars WHERE charid = $1",
+            char_id
+        )
+        char_name = db_char['charname']
+        level = db_char['level']
+        rank = db_char['rank']
+        exp = db_char['exp']
+
+        db_chardata = await self.bot.pg_con.fetchrow(
+            "SELECT * FROM chardata WHERE charname = $1",
+            char_name
+        )
+        char_class = db_chardata['class']
+        imgurl = db_chardata['imgurl']
+        
+        health = db_chardata['health']
+        attack = db_chardata['attack']
+        defense = db_chardata['defense']
+        speed = db_chardata['speed']
+        accuracy = db_chardata['accuracy']
+
         embed = discord.Embed(
             title = "Character Info",
+            color = c.invis
+        )
+        embed.add_field(
+            name = "Level",
+            value = f"{level}",
+        )
+        embed.add_field(
+            name = "Rank",
+            value = f"{rank}",
+            inline = True
+        )
+        embed.add_field(
+            name = "Exp",
+            value = f"{exp}",
+            inline = True
+        )
+        embed.add_field(
+            name = "Stats",
+            value = f"""
+            **Health**: {health}
+            **Attack**: {attack}
+            **Defense**: {defense}
+            **Speed**: {speed}
+            **Accuracy**: {accuracy}
+            """,
+            inline = True
+        )
+        embed.set_thumbnail(
+            url = f"{imgurl}"
         )
         await interaction.response.send_message(embed=embed)
 
