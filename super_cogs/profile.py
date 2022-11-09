@@ -11,6 +11,7 @@ from discord import app_commands, Interaction
 - /wallet [user]
 # - /bag
 - /share [slinger] [gold]
+- /teamswap [pos1] [pos2]
 """
 
 class Profile(commands.Cog):
@@ -141,7 +142,7 @@ class Profile(commands.Cog):
         )
         embed.set_author(
             name = f"{user.name}'s Wallet",
-            icon_url = user.avatar.url
+            icon_url = user.avatar.url if user.avatar else "https://www.howtogeek.com/wp-content/uploads/2021/07/Discord-Logo-Lede.png?height=200p&trim=2,2,2,2"
         )
         await interaction.response.send_message(embed = embed)
 
@@ -218,6 +219,47 @@ class Profile(commands.Cog):
             )
 
         await interaction.edit_original_response(embed = embed, view = None)
+    
+    @app_commands.command(
+        description = "Swaps the slugs in the team"
+    )
+    @app_commands.rename(
+        pos1 = "position-1", pos2 = "position-2"
+    )
+    @app_commands.describe(
+        pos1 = "Type the position of the slug you want to swap for",
+        pos2 = "Type the position of the slug you want to swap with"
+    )
+    async def swap(self, interaction: Interaction, pos1: int, pos2: int):
+        user = interaction.user
+        user_id = user.id
+
+        db_profile = await self.profiledb(user_id)
+
+        if (pos1 not in [1,2,3,4]) or (pos2 not in [1,2,3,4]):
+            return await interaction.response.send_message("Invalid position")
+        
+        slug1 = db_profile[f'team{pos1}']
+        slug2 = db_profile[f'team{pos2}']
+
+        await self.bot.pg_con.execute(
+            "UPDATE profile SET team1 = $1 WHERE userid = $2",
+            slug2, user_id
+        )
+        await self.bot.pg_con.execute(
+            "UPDATE profile SET team2 = $1 WHERE userid = $2",
+            slug1, user_id
+        )
+        slug_name1 = (await self.bot.pg_con.fetchrow("SELECT * FROM allslugs WHERE slugid = $1",slug1))['slugname']
+        slug_name2 = (await self.bot.pg_con.fetchrow("SELECT * FROM allslugs WHERE slugid = $1",slug2))['slugname']
+
+        embed = discord.Embed(
+            title = f"Swapped!",
+            description = f"{slug_name1.title()} \U0001f501 {slug_name2.title()}",
+            color = c.main
+        )
+        await interaction.response.send_message(embed = embed)
+
 
 class Confirm(discord.ui.View):
     def __init__(self):
