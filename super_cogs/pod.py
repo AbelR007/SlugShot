@@ -4,6 +4,8 @@ from discord.ext import commands
 from discord import Interaction, app_commands
 # Constants
 import consts as c
+from .sluginfo import types
+from exts import box_positions
 
 """ Pod Commands
 - /pod view
@@ -101,9 +103,158 @@ class PodCog(commands.Cog):
     @group.command(
         description = "Shows slug information in the pod"
     )
-    async def info(self, interaction: Interaction, no: int):
+    @app_commands.rename(
+        no = "number",
+        pos = "pod-position"
+    )
+    @app_commands.describe(
+        no = "Type the pod number to view",
+        pos = "Type the slug position to view"
+    )
+    async def info(self, interaction: Interaction, pos: str, no: int = 1):
+
+        user = interaction.user
+
+        if pos not in box_positions:
+            if pos[::-1] in box_positions:
+                pos = pos[::-1]
+            else:
+                return await interaction.response.send_message("Invalid Slug Position")
+
+        db_profile = await self.profiledb(user.id)
+        pods = db_profile['pods']
+
+        if no > pods:
+            return await interaction.response.send_message("You don't have that many pods yet!\nYou can buy more pods by /pod buy")
         
-        await interaction.response.send_message("This")
+        db_allslugs = await self.bot.pg_con.fetchrow(
+            "SELECT * FROM allslugs WHERE pod_position = $1 and pod_no = $2 and userid = $3",
+            pos, no, user.id
+        )
+        if not db_allslugs:
+            return await interaction.response.send_message("You don't have a slug in that position")
+
+        slug_id = db_allslugs['slugid']
+
+        if slug_id is None or slug_id == '':
+            return await interaction.response.send_message("No slug at that position.")
+
+        # All Slugs DataBase
+        db_allslugs = await self.bot.pg_con.fetchrow("SELECT * FROM allslugs WHERE slugid = $1",slug_id)
+        user_id = int(db_allslugs['userid'])
+        # print(user_id)
+        slinger  = self.bot.get_user(user_id)
+        # print(slinger)
+        
+        slug_name = db_allslugs['slugname']
+        level = db_allslugs['level']
+        rank = db_allslugs['rank']
+        exp = db_allslugs['exp']
+
+        iv_health = db_allslugs['iv_health']
+        iv_attack = db_allslugs['iv_attack']
+        iv_defense = db_allslugs['iv_defense']
+        iv_speed = db_allslugs['iv_speed']
+        iv_accuracy = db_allslugs['iv_accuracy']
+        iv_retrieval = db_allslugs['iv_retrieval']
+
+        ev_health = db_allslugs['ev_health']
+        ev_attack = db_allslugs['ev_attack']
+        ev_defense = db_allslugs['ev_defense']
+        ev_speed = db_allslugs['ev_speed']
+        ev_accuracy = db_allslugs['ev_accuracy']
+        ev_retrieval = db_allslugs['ev_retrieval']
+
+        item = db_allslugs['item']
+        if item == '' or item is None:
+            item = "None"
+        else:
+            item = item.replace("_"," ").capitalize()
+
+        abilityno = db_allslugs['abilityno']
+        if abilityno == 1:
+            ability = "Base Ability"
+        else:
+            abilitydb = await self.bot.pg_con.fetchrow(
+                "SELECT * FROM ability WHERE slugname = $1 AND abilityno = $2",
+                slug_name, abilityno
+            )
+            ability = abilitydb['ability']
+        
+        # Slug Stats from FIXED Database
+        db_slugdata = await self.bot.pg_con.fetchrow("SELECT * FROM slugdata WHERE slugname = $1", slug_name)
+
+        slug_type = db_slugdata['type']
+
+        health = db_slugdata['health']
+        attack = db_slugdata['attack']
+        defense = db_slugdata['defense']
+        speed = db_slugdata['speed']
+        accuracy = db_slugdata['accuracy']
+        retrieval = db_slugdata['retrieval']
+        imgurl = db_slugdata['protoimgurl']
+
+        type_emoji, embed_clr = types(slug_type)
+
+        embed = discord.Embed(
+            title = f"{type_emoji} {slug_name.title()}",
+            color=embed_clr
+        )
+        embed.add_field(name="Pod Position", value=f"#{no}-**{pos.upper()}**", inline=True)
+        embed.add_field(name="Level", value=f"{level}", inline=True)
+        embed.add_field(name="Experience",
+                        value=f"Rank {rank} [{exp}]", inline=True)
+        embed.add_field(
+            name="Base",
+            value=f"""
+            **Health**: {health}
+            **Attack**: {attack}
+            **Defense**: {defense}
+            **Speed**: {speed}
+            **Accuracy**: {accuracy}
+            **Retrieval**: {retrieval}
+            """,
+            inline=True
+        )
+        embed.add_field(
+            name="IVs",
+            value=f"""
+            **Health**: {iv_health}
+            **Attack**: {iv_attack}
+            **Defense**: {iv_defense}
+            **Speed**: {iv_speed}
+            **Accuracy**: {iv_accuracy}
+            **Retrieval**: {iv_retrieval}
+            """,
+            inline=True
+        )
+        embed.add_field(
+            name="EVs",
+            value=f"""
+            **Health**: {ev_health}
+            **Attack**: {ev_attack}
+            **Defense**: {ev_defense}
+            **Speed**: {ev_speed}
+            **Accuracy**: {ev_accuracy}
+            **Retrieval**: {ev_retrieval}
+            """,
+            inline=True
+        )
+        embed.add_field(
+            name="Item",
+            value=f"{item}",
+            inline=True
+        )
+        embed.add_field(
+            name="Ability",
+            value=f"{ability}",
+            inline=True
+        )
+        embed.set_footer(
+            text=f"Slinger: {slinger}"
+        )
+        embed.set_thumbnail(url=f"{imgurl}")
+        await interaction.response.send_message(embed=embed)
     
     @group.command(
         description = "Buy's you a new pod to store slugs in"

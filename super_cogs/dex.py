@@ -396,6 +396,7 @@ class SlugDexCog(commands.Cog):
         cost = items[item_name][0]
         emoji = items[item_name][1]
         desc = items[item_name][2]
+        sell_cost = cost - int(cost * (40/100))
 
         embed = discord.Embed(
             title = f"{emoji} {item_name.title()}",
@@ -409,7 +410,7 @@ class SlugDexCog(commands.Cog):
         )
         embed.add_field(
             name = "Sell Cost",
-            value = f"{cost} {c.gold}",
+            value = f"{sell_cost}{c.gold}",
             inline = True
         )
         await interaction.response.send_message(embed=embed)
