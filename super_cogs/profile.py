@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 import consts as c
+from exts import items
 # Slash commands
 from discord import app_commands, Interaction
 
@@ -9,7 +10,7 @@ from discord import app_commands, Interaction
 - /team [user]
 # - /stats
 - /wallet [user]
-# - /bag
+- /bag
 - /share [slinger] [gold]
 - /teamswap [pos1] [pos2]
 """
@@ -101,6 +102,13 @@ class Profile(commands.Cog):
             await self.bot.pg_con.execute("INSERT INTO profile(userid, gold) VALUES($1, $2)", user_id, 0)
         profile = await self.bot.pg_con.fetchrow("SELECT * FROM profile WHERE userid = $1", user_id)
         return profile
+    
+    async def shopdb(self, user_id):
+        shopdb = await self.bot.pg_con.fetchrow("SELECT * FROM shop WHERE userid = $1", user_id)
+        if not shopdb:
+            await self.bot.pg_con.execute("INSERT INTO shop(userid) VALUES ($1)",user_id)
+        shopdb = await self.bot.pg_con.fetchrow("SELECT * FROM shop WHERE userid = $1", user_id)
+        return shopdb
 
     @app_commands.command(
         description = "Shows the amount of in-game currency you currently have"
@@ -143,6 +151,52 @@ class Profile(commands.Cog):
         embed.set_author(
             name = f"{user.name}'s Wallet",
             icon_url = user.avatar.url if user.avatar else "https://www.howtogeek.com/wp-content/uploads/2021/07/Discord-Logo-Lede.png?height=200p&trim=2,2,2,2"
+        )
+        await interaction.response.send_message(embed = embed)
+    
+    @app_commands.command(
+        description = "Shows the items you currently have in your bag",
+    )
+    async def bag(self, interaction: Interaction, user: discord.Member = None):
+        if not user:
+            user = interaction.user
+        
+        user_id = user.id
+        db_profile = await self.profiledb(user_id)
+        db_shopdb = await self.shopdb(user_id)
+        shop_text = ""
+
+        items_list_dash = list(db_shopdb.keys())
+        del items_list_dash[0] # Remove 'userid' from the list
+        for i in range(len(items_list_dash)):
+            items_list_dash[i] = items_list_dash[i].replace(" ", "_")
+        # print(items_list_dash)
+
+        no_of_items = len(db_shopdb) - 1
+        # print(no_of_items,len(items_list_dash))
+        # print(db_shopdb,items_list_dash)
+
+        for n in range(no_of_items):
+            item_name_dash = items_list_dash[n]
+            # print(item_name_dash)
+            item_name = item_name_dash.replace("_", " ")
+            try:
+                emoji = items[f'{item_name}'][1]
+            except:
+                "<:question_mark:976450883049111582>"
+            item_stock = db_shopdb[f'{item_name_dash}']
+            if item_stock == 0:
+                continue
+            
+            shop_text += f"{emoji}**{item_name.title()}** - ({item_stock})\n"
+
+        embed = discord.Embed(
+            title = "Bag",
+            description = f"{shop_text}",
+            color = c.main
+        )
+        embed.set_thumbnail(
+            url = "https://media.discordapp.net/attachments/841619355958902814/1039907585840644127/1668003661223.png?width=382&height=468"
         )
         await interaction.response.send_message(embed = embed)
 

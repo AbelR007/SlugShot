@@ -1,8 +1,10 @@
 import discord
 from discord.ext import commands
 import consts as c
+from exts import items
 from .dex import types
 from .profile import Profile
+import autolist
 # Slash Commands
 from discord import Interaction, app_commands
 
@@ -239,6 +241,61 @@ class SlugInfo(commands.Cog):
         embed.set_thumbnail(
             url = f"{imgurl}"
         )
+        await interaction.response.send_message(embed=embed)
+    
+    async def shopdb(self, user_id):
+        db_shop = await self.bot.pg_con.fetchrow(
+            "SELECT * FROM shop WHERE userid = $1",
+            user_id
+        )
+        if not db_shop:
+            await self.bot.pg_con.execute(
+                "INSERT INTO shop (userid) VALUES ($1)",
+                user_id
+            )
+        db_shop = await self.bot.pg_con.fetchrow(
+            "SELECT * FROM shop WHERE userid = $1",
+            user_id
+        )
+        return db_shop
+
+    @app_commands.command(
+        description = "Shows information about the item"
+    )
+    @app_commands.rename(
+        item_name = "item"
+    )
+    @app_commands.describe(
+        item_name = "The item to get information about"
+    )
+    async def iteminfo(self, interaction: Interaction, item_name: str):
+        user = interaction.user
+        db_profile = await self.profiledb(user.id)
+        db_shop = await self.shopdb(user.id)
+
+        items_list = list(items.keys())
+        item_name = autolist.autocorrect(item_name,items_list)
+
+        if item_name not in items_list:
+            return await interaction.response.send_message(f"No item found named {item_name}.")
+
+        item_dash = item_name.replace(' ','_')
+
+        stock = db_shop[f'{item_dash}']
+        
+        emoji = items[item_name][1]
+        desc = items[item_name][2]
+
+        embed = discord.Embed(
+            title = f"{emoji} {item_name.title()}",
+            description = f"{desc}",
+            color = c.main
+        )
+        embed.add_field(
+            name = "Stock",
+            value = f"{stock}"
+        )
+        embed.set_footer(text = f"You can buy items from the /buy command")
         await interaction.response.send_message(embed=embed)
 
 async def setup(bot: commands.Bot):
