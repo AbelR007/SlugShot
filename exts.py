@@ -46,3 +46,57 @@ box_positions = [
     'a4','b4','c4','d4','e4',
     'a5','b5','c5','d5','e5'
 ]
+
+locations = {
+    "Wild Western Caverns": {
+        "Shane Hideout": 1,
+        "Wild Spores Cavern": 2,
+        "Dark Spores Cavern": 3,
+        "Herringbone Cavern": 4,
+        "Rocklock Cavern": 6,
+    },
+    "Northern Caverns": {
+        "Chillbore Cavern": 1,
+        "Northern Cavern": 3,
+        "Snowdance Cavern": 6,
+    }
+}
+
+char_regions = {
+    "Wild Western Caverns": {
+        "Shane Hideout": ["Kord Zane", "Pronto", "Trixie"],
+        "Wild Spores Cavern": ["Pronto"],
+        "Dark Spores Cavern": ["Pronto","Trixie"],
+        "Herringbone Cavern": ["Pronto"],
+        "Rocklock Cavern": ["Kord Zane"],
+    },
+}
+
+slugs_chance = {
+    "Shane Hideout": {
+        "common": ['rammstone', 'hop rock'],
+        "uncommon": ['armashelt', 'arachnet', ],
+        "legendary": ['infurnus'],
+    },
+    "Wild Spores Cavern": {
+        "common": ['flatulorhinkus'],
+        "uncommon": ['flaringo'],
+        "rare": ['bubbaleone'],
+        "super rare": ['frostcrawler'],
+        # "mythical": ['thugglet'],
+    },
+    "Dark Spores Cavern": {
+        "common": ['flatulorhinkus'],
+        "rare": ['speedstinger'],
+        "super rare": ['grenuke', 'frightgeist'],
+    },
+    "Herringbone Cavern": {
+        "uncommon": ['speedstinger'],
+        "rare": ['grenuke', 'armashelt'],
+    },
+    "Rocklock Cavern": {
+        "common": ['hop rock'],
+        "uncommon": ['arachnet', 'rammstone'],
+        "super rare": ['grenuke'],
+    }
+}
